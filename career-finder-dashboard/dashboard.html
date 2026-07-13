@@ -1,0 +1,1656 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>커리어 파인더 대시보드</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#F4F5F7;
+    --surface:#FFFFFF;
+    --border:#E6E8EC;
+    --border-strong:#D7DAE0;
+
+    --ink:#12151C;
+    --ink-soft:#666B76;
+    --ink-faint:#9AA0AC;
+
+    --primary:#2F5CFF;
+    --primary-dark:#1E3FCC;
+    --primary-tint:#EAF0FF;
+
+    --teal:#0E9C8B;
+    --teal-tint:#E3F6F3;
+
+    --amber:#B4740E;
+    --amber-tint:#FCF1DE;
+
+    --rose:#D23B5B;
+    --rose-tint:#FBE9EE;
+
+    --violet:#6E56CF;
+    --violet-tint:#EFEBFB;
+
+    --radius-lg:14px;
+    --radius-md:10px;
+    --radius-sm:6px;
+    --shadow:0 1px 2px rgba(18,21,28,0.04), 0 6px 16px rgba(18,21,28,0.05);
+  }
+
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing:antialiased;
+    font-size:14px;
+  }
+
+  .mono{ font-family:'IBM Plex Mono', monospace; }
+  a{ color:inherit; }
+  button{ font-family:inherit; cursor:pointer; }
+  input, select, textarea{ font-family:inherit; font-size:13px; }
+
+  .shell{
+    max-width:1240px;
+    margin:0 auto;
+    padding:32px 28px 90px;
+  }
+  .hidden{ display:none !important; }
+
+  /* ---------- auth ---------- */
+  .auth-wrap{
+    max-width:380px;
+    margin:8vh auto;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow);
+    padding:32px 28px;
+  }
+  .auth-wrap h1{ font-size:20px; margin:0 0 4px; }
+  .auth-wrap p.sub{ color:var(--ink-soft); font-size:12.5px; margin:0 0 20px; }
+  .field{ margin-bottom:12px; }
+  .field label{ display:block; font-size:12px; font-weight:600; color:var(--ink-soft); margin-bottom:5px; }
+  .field input, .field select, .field textarea{
+    width:100%; padding:9px 11px; border:1px solid var(--border-strong); border-radius:var(--radius-sm);
+    background:#fff; color:var(--ink);
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{ outline:2px solid var(--primary); outline-offset:0; border-color:var(--primary); }
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    padding:9px 16px; border-radius:var(--radius-sm); border:1px solid var(--border-strong);
+    background:#fff; color:var(--ink); font-size:12.5px; font-weight:600;
+  }
+  .btn:hover{ border-color:var(--ink-faint); }
+  .btn-primary{ background:var(--primary); border-color:var(--primary); color:#fff; }
+  .btn-primary:hover{ background:var(--primary-dark); border-color:var(--primary-dark); }
+  .btn-danger{ color:var(--rose); }
+  .btn-block{ width:100%; }
+  .btn-sm{ padding:5px 10px; font-size:11.5px; }
+  .auth-row{ display:flex; gap:8px; margin-top:16px; }
+  .auth-msg{ font-size:12px; color:var(--rose); margin-top:8px; min-height:16px; }
+
+  /* ---------- header ---------- */
+  .topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:20px;
+    flex-wrap:wrap;
+    padding-bottom:20px;
+    margin-bottom:24px;
+    border-bottom:1px solid var(--border);
+  }
+  .eyebrow-top{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:1.5px;
+    color:var(--primary);
+    text-transform:uppercase;
+    margin:0 0 8px;
+  }
+  .brand-title{
+    font-size:26px;
+    font-weight:700;
+    letter-spacing:-0.4px;
+    margin:0 0 6px;
+  }
+  .brand-sub{
+    margin:0;
+    color:var(--ink-soft);
+    font-size:13px;
+  }
+  .brand-sub .mono{ color:var(--ink); font-weight:600; }
+
+  .topbar-right{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .rt-indicators{ display:flex; flex-direction:column; gap:4px; align-items:flex-end; margin-right:4px; }
+  .rt-chip{
+    font-size:10.5px; font-weight:600; padding:3px 8px; border-radius:5px;
+    display:inline-flex; align-items:center; gap:5px;
+  }
+  .rt-dot{ width:6px; height:6px; border-radius:50%; display:inline-block; }
+  .rt-ok{ background:var(--teal-tint); color:var(--teal); }
+  .rt-ok .rt-dot{ background:var(--teal); }
+  .rt-warn{ background:var(--amber-tint); color:var(--amber); }
+  .rt-warn .rt-dot{ background:var(--amber); }
+  .rt-err{ background:var(--rose-tint); color:var(--rose); }
+  .rt-err .rt-dot{ background:var(--rose); }
+
+  .user-tag{ text-align:right; }
+  .user-tag .name{ font-size:13.5px; font-weight:700; }
+  .user-tag .role{ font-size:11.5px; color:var(--ink-soft); }
+
+  .next-event{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius-md);
+    padding:8px 14px;
+    box-shadow:var(--shadow);
+  }
+  .next-event .lbl{ font-size:11px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:0.5px; }
+  .next-event .val{ font-size:12.5px; font-weight:600; }
+  .dday-num{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:700;
+    font-size:12.5px;
+    color:#fff;
+    background:var(--ink);
+    border-radius:6px;
+    padding:3px 8px;
+  }
+
+  /* ---------- section heading ---------- */
+  .sec-head{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:12px;
+    margin:0 0 16px;
+    flex-wrap:wrap;
+  }
+  .sec-head h2{
+    font-size:15.5px;
+    font-weight:700;
+    margin:0 0 4px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .sec-eyebrow{
+    display:block;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    font-weight:600;
+    letter-spacing:1.2px;
+    color:var(--ink-faint);
+    text-transform:uppercase;
+  }
+  .sec-note{ font-size:12px; color:var(--ink-soft); }
+  .batch-note{
+    font-size:10.5px; font-weight:700; color:var(--primary); background:var(--primary-tint);
+    padding:2px 8px; border-radius:5px;
+  }
+
+  /* ---------- stat cards ---------- */
+  .stat-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:14px;
+    margin-bottom:24px;
+  }
+  .stat-card{
+    background:var(--surface);
+    border-radius:var(--radius-lg);
+    border:1px solid var(--border);
+    box-shadow:var(--shadow);
+    padding:18px 20px;
+    position:relative;
+  }
+  .stat-card::before{
+    content:"";
+    position:absolute;
+    top:0; left:0;
+    width:100%; height:3px;
+    border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+    background:var(--bar-color, var(--primary));
+  }
+  .stat-card .label{ font-size:12px; color:var(--ink-soft); font-weight:600; margin-bottom:10px; }
+  .stat-card .value{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:28px; font-weight:700; line-height:1;
+    display:flex; align-items:baseline; gap:5px;
+  }
+  .stat-card .value span{ font-size:13px; color:var(--ink-faint); font-weight:400; }
+  .stat-card .delta{ margin-top:10px; font-size:11.5px; font-weight:600; color:var(--ink-soft); }
+  .delta .arrow-up{ color:var(--teal); }
+  .delta .arrow-flat{ color:var(--amber); }
+
+  /* ---------- panel base ---------- */
+  .panel{
+    background:var(--surface);
+    border-radius:var(--radius-lg);
+    border:1px solid var(--border);
+    box-shadow:var(--shadow);
+    padding:22px;
+    position:relative;
+  }
+  .panel.just-synced{ animation:flashPanel 1.6s ease; }
+  tr.just-synced, .watch-item.just-synced, .sched-item.just-synced{ animation:flashRow 1.6s ease; }
+  @keyframes flashPanel{ 0%{ box-shadow:0 0 0 2px var(--primary); } 100%{ box-shadow:var(--shadow); } }
+  @keyframes flashRow{ 0%{ background:var(--primary-tint); } 100%{ background:transparent; } }
+
+  /* ---------- pipeline funnel ---------- */
+  .pipeline-card{ margin-bottom:24px; }
+  .funnel{ display:grid; grid-template-columns:repeat(4,1fr); gap:0; margin-top:6px; }
+  .funnel-stage{ position:relative; padding:0 18px 0 0; }
+  .funnel-stage:not(:last-child)::after{
+    content:"→"; position:absolute; right:2px; top:8px; color:var(--ink-faint); font-size:14px;
+  }
+  .funnel-stage .stage-label{
+    font-size:11.5px; color:var(--ink-soft); font-weight:600; margin-bottom:8px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .stage-dot{ width:7px; height:7px; border-radius:2px; display:inline-block; }
+  .funnel-stage .stage-count{ font-family:'IBM Plex Mono', monospace; font-size:26px; font-weight:700; margin-bottom:10px; }
+  .funnel-bar-track{ height:8px; background:var(--bg); border-radius:3px; overflow:hidden; margin-bottom:8px; }
+  .funnel-bar-fill{ height:100%; border-radius:3px; }
+  .funnel-stage .conv{ font-size:11px; color:var(--ink-faint); }
+  .funnel-stage .conv b{ color:var(--ink-soft); }
+  .funnel-stage-inner{ border-radius:var(--radius-md); }
+
+  /* ---------- two column layout ---------- */
+  .row-2col{ display:grid; grid-template-columns:1.15fr 0.85fr; gap:16px; margin-bottom:24px; align-items:stretch; }
+
+  /* schedule list */
+  .sched-list{ display:flex; flex-direction:column; }
+  .sched-item{ display:flex; align-items:center; gap:14px; padding:13px 4px; border-bottom:1px solid var(--border); border-radius:6px; }
+  .sched-item:last-child{ border-bottom:none; padding-bottom:0;}
+  .sched-item:first-child{ padding-top:0; }
+  .sched-date{ font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--ink-soft); width:64px; flex-shrink:0; line-height:1.4; }
+  .sched-date b{ display:block; font-size:13.5px; color:var(--ink); font-weight:700; }
+  .sched-mid{ flex:1; min-width:0; }
+  .sched-mid .title{ font-weight:600; font-size:13.5px; margin-bottom:2px; }
+  .sched-mid .sub{ font-size:12px; color:var(--ink-soft); }
+  .dday-pill{ font-family:'IBM Plex Mono', monospace; font-size:11.5px; font-weight:700; padding:4px 9px; border-radius:5px; flex-shrink:0; border:1px solid transparent; }
+  .pill-urgent{ color:var(--rose); background:var(--rose-tint); }
+  .pill-soon{ color:var(--amber); background:var(--amber-tint); }
+  .pill-later{ color:var(--ink-soft); background:var(--bg); border-color:var(--border); }
+  .sched-actions{ display:flex; gap:4px; flex-shrink:0; }
+  .icon-btn{ border:none; background:none; color:var(--ink-faint); font-size:13px; padding:3px 5px; border-radius:4px; }
+  .icon-btn:hover{ background:var(--bg); color:var(--ink); }
+
+  /* watchlist companies */
+  .watch-list{ display:flex; flex-direction:column; }
+  .watch-item{ display:flex; align-items:center; gap:12px; padding:11px 4px; border-bottom:1px solid var(--border); cursor:pointer; border-radius:6px; }
+  .watch-item:last-child{ border-bottom:none; padding-bottom:0; }
+  .watch-item:first-child{ padding-top:0; }
+  .logo-chip{ width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:700; color:#fff; font-size:12.5px; flex-shrink:0; }
+  .watch-mid{ flex:1; min-width:0; }
+  .watch-mid .name{ font-weight:700; font-size:13.5px; }
+  .watch-mid .cat{ font-size:11.5px; color:var(--ink-soft); }
+  .status-badge{ font-size:11px; font-weight:600; padding:3px 9px; border-radius:5px; white-space:nowrap; }
+  .status-open{ background:var(--teal-tint); color:var(--teal); }
+  .status-urgent{ background:var(--rose-tint); color:var(--rose); }
+  .status-always{ background:var(--primary-tint); color:var(--primary); }
+  .watch-jobs{ padding:6px 4px 14px 44px; border-bottom:1px solid var(--border); }
+  .wj-row{ display:flex; align-items:center; gap:8px; font-size:12.5px; padding:6px 0; border-bottom:1px dashed var(--border); }
+  .wj-row:last-child{ border-bottom:none; }
+  .wj-row a{ text-decoration:none; font-weight:600; flex:1; min-width:0; }
+  .wj-row a:hover{ color:var(--primary); }
+  .badge-reward{ font-size:10.5px; font-weight:600; color:var(--violet); background:var(--violet-tint); padding:2px 7px; border-radius:4px; }
+  .badge-dday{ font-size:10.5px; font-weight:700; color:var(--rose); background:var(--rose-tint); padding:2px 7px; border-radius:4px; }
+  .badge-closed{ font-size:10.5px; font-weight:600; color:var(--ink-faint); background:var(--bg); padding:2px 7px; border-radius:4px; }
+  .badge-new{ font-size:10.5px; font-weight:700; color:var(--teal); background:var(--teal-tint); padding:2px 7px; border-radius:4px; }
+  .wl-note{ font-size:11px; color:var(--ink-faint); margin-top:12px; padding-top:12px; border-top:1px solid var(--border); }
+
+  /* ---------- market trend section ---------- */
+  .market-grid{ display:grid; grid-template-columns:1.3fr 0.7fr; gap:16px; margin-bottom:24px; }
+  .insight-list{ display:flex; flex-direction:column; gap:8px; max-height:330px; overflow-y:auto; }
+  .insight-item{ padding:11px 13px; border-radius:var(--radius-md); border:1px solid var(--border); border-left:3px solid var(--accent, var(--primary)); font-size:12px; line-height:1.5; color:var(--ink-soft); }
+  .insight-item b{ display:block; font-size:13px; margin-bottom:4px; color:var(--ink); }
+  .tag-chip{ display:inline-block; font-size:10.5px; font-weight:600; padding:2px 7px; border-radius:4px; background:var(--bg); color:var(--ink-soft); margin:2px 3px 0 0; border:1px solid var(--border); }
+  .insight-source{ font-size:10.5px; color:var(--ink-faint); margin-top:14px; }
+  .chart-box{ position:relative; height:270px; margin-top:8px; }
+
+  /* ---------- skills ---------- */
+  .skills-grid{ display:grid; grid-template-columns:1.1fr 0.9fr; gap:16px; margin-bottom:24px; }
+  .skill-row{ margin-bottom:14px; display:flex; align-items:center; gap:10px; }
+  .skill-row .body{ flex:1; min-width:0; }
+  .skill-row:last-child{ margin-bottom:0; }
+  .skill-row .top{ display:flex; justify-content:space-between; font-size:12.5px; font-weight:600; margin-bottom:6px; }
+  .skill-row .top span.pct{ font-family:'IBM Plex Mono', monospace; color:var(--ink-soft); font-weight:400; }
+  .bar-track{ height:6px; background:var(--bg); border-radius:3px; overflow:hidden; }
+  .bar-fill{ height:100%; border-radius:3px; background:var(--ink); }
+
+  .cert-list{ display:flex; flex-wrap:wrap; gap:8px; margin-top:20px; padding-top:16px; border-top:1px solid var(--border); }
+  .cert-chip{ font-size:11.5px; font-weight:600; padding:5px 11px; border-radius:5px; display:inline-flex; align-items:center; gap:6px; border:1px solid var(--border); color:var(--ink-soft); }
+  .cert-done{ background:var(--teal-tint); color:var(--teal); border-color:transparent; }
+  .cert-ing{ background:var(--amber-tint); color:var(--amber); border-color:transparent; }
+  .cert-chip .x{ cursor:pointer; opacity:.6; }
+  .cert-chip .x:hover{ opacity:1; }
+
+  /* ---------- applications table ---------- */
+  .table-card{ margin-bottom:20px; }
+  .tab-filters{ display:flex; gap:6px; flex-wrap:wrap; }
+  .tab-btn{ border:1px solid var(--border); background:var(--surface); color:var(--ink-soft); font-size:12px; font-weight:600; padding:6px 13px; border-radius:6px; transition:background .15s ease, color .15s ease, border-color .15s ease; }
+  .tab-btn:hover{ border-color:var(--ink-faint); color:var(--ink); }
+  .tab-btn.active{ background:var(--ink); color:#fff; border-color:var(--ink); }
+  .tab-btn:focus-visible{ outline:2px solid var(--primary); outline-offset:2px; }
+
+  table{ width:100%; border-collapse:collapse; margin-top:16px; font-size:13px; }
+  thead th{ text-align:left; font-size:11px; color:var(--ink-faint); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; padding:0 10px 10px; border-bottom:1px solid var(--border); }
+  tbody td{ padding:12px 10px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  tbody tr:last-child td{ border-bottom:none; }
+  .company-cell{ display:flex; align-items:center; gap:10px; font-weight:600; }
+  .mini-logo{ width:24px; height:24px; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:10.5px; font-weight:700; flex-shrink:0; }
+  .row-status{ font-size:11px; font-weight:600; padding:3px 9px; border-radius:5px; white-space:nowrap; display:inline-block; }
+  .st-review{ background:var(--primary-tint); color:var(--primary); }
+  .st-interview{ background:var(--amber-tint); color:var(--amber); }
+  .st-pass{ background:var(--teal-tint); color:var(--teal); }
+  .st-fail{ background:#F0F0F2; color:var(--ink-faint); }
+
+  /* ---------- search section ---------- */
+  .search-bar{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .search-bar input, .search-bar select{ padding:9px 11px; border:1px solid var(--border-strong); border-radius:var(--radius-sm); }
+  .search-bar input[type="text"]{ flex:1; min-width:180px; }
+  .job-result{ display:flex; align-items:center; gap:12px; padding:13px 4px; border-bottom:1px solid var(--border); }
+  .job-result:last-child{ border-bottom:none; }
+  .job-mid{ flex:1; min-width:0; }
+  .job-mid .jtitle{ font-weight:700; font-size:13.5px; }
+  .job-mid .jco{ font-size:12px; color:var(--ink-soft); margin-top:2px; }
+  .job-badges{ display:flex; gap:6px; margin-top:6px; flex-wrap:wrap; }
+  .job-actions{ display:flex; flex-direction:column; gap:6px; flex-shrink:0; }
+  .company-result{ display:flex; align-items:center; gap:12px; padding:11px 4px; border-bottom:1px solid var(--border); }
+  .company-result:last-child{ border-bottom:none; }
+
+  /* ---------- advanced filter "더보기" ---------- */
+  .adv-filter{ margin-bottom:16px; border:1px solid var(--border); border-radius:var(--radius-md); padding:0; }
+  .adv-filter summary{ cursor:pointer; padding:9px 13px; font-size:12.5px; font-weight:600; color:var(--ink-soft); list-style:none; display:flex; align-items:center; gap:6px; }
+  .adv-filter summary::-webkit-details-marker{ display:none; }
+  .adv-filter summary::before{ content:"▸"; font-size:10px; color:var(--ink-faint); }
+  .adv-filter[open] summary::before{ content:"▾"; }
+  .adv-filter[open] summary{ border-bottom:1px solid var(--border); }
+  .adv-filter-body{ display:flex; gap:16px; flex-wrap:wrap; padding:14px 13px; }
+  .adv-filter-body .field{ margin-bottom:0; min-width:140px; }
+  .adv-filter-body .field label{ margin-bottom:5px; }
+
+  /* ---------- skill autocomplete ---------- */
+  .ac-wrap{ position:relative; }
+  .ac-dropdown{
+    position:absolute; top:calc(100% + 3px); left:0; right:0; z-index:20;
+    background:#fff; border:1px solid var(--border-strong); border-radius:var(--radius-sm);
+    box-shadow:var(--shadow); max-height:200px; overflow-y:auto;
+  }
+  .ac-item{ padding:8px 11px; font-size:12.5px; cursor:pointer; }
+  .ac-item:hover, .ac-item.active{ background:var(--violet-tint); color:var(--violet); }
+  .ac-item:not(:last-child){ border-bottom:1px solid var(--border); }
+  .badge-wanted-tag{ font-size:10.5px; font-weight:600; color:var(--violet); background:var(--violet-tint); padding:2px 7px; border-radius:4px; white-space:nowrap; }
+
+  /* ---------- notice / degrade banner ---------- */
+  .notice-banner{ background:var(--amber-tint); color:var(--amber); border-radius:var(--radius-md); padding:10px 14px; font-size:12px; font-weight:600; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+
+  /* ---------- skeleton ---------- */
+  .skel{ position:relative; overflow:hidden; background:#ECEEF1; border-radius:6px; }
+  .skel::after{
+    content:""; position:absolute; inset:0; transform:translateX(-100%);
+    background:linear-gradient(90deg, transparent, rgba(255,255,255,.7), transparent);
+    animation:shimmer 1.3s infinite;
+  }
+  @keyframes shimmer{ 100%{ transform:translateX(100%); } }
+
+  /* ---------- modal / slideover ---------- */
+  .overlay{ position:fixed; inset:0; background:rgba(18,21,28,.4); display:flex; align-items:center; justify-content:center; z-index:100; padding:20px; }
+  .modal{ background:#fff; border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:24px; width:100%; max-width:460px; max-height:88vh; overflow-y:auto; }
+  .modal h3{ margin:0 0 16px; font-size:16px; }
+  .modal-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:18px; }
+  .slideover-wrap{ position:fixed; inset:0; background:rgba(18,21,28,.4); z-index:100; display:flex; justify-content:flex-end; }
+  .slideover{ background:#fff; width:100%; max-width:420px; height:100%; overflow-y:auto; padding:26px; box-shadow:var(--shadow); }
+  .insight-row{ display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); font-size:12.5px; gap:10px; }
+  .insight-row .k{ color:var(--ink-soft); flex-shrink:0; }
+  .insight-row .v{ font-weight:600; text-align:right; }
+  .close-x{ position:absolute; top:16px; right:16px; border:none; background:none; font-size:18px; color:var(--ink-faint); }
+
+  footer{ text-align:center; font-size:11.5px; color:var(--ink-faint); padding-top:8px; line-height:1.6; }
+
+  a:focus-visible, button:focus-visible{ outline:2px solid var(--primary); outline-offset:2px; }
+  @media (prefers-reduced-motion: reduce){ *{ transition:none !important; animation:none !important; scroll-behavior:auto !important; } }
+
+  @media (max-width: 980px){
+    .stat-grid{ grid-template-columns:repeat(2,1fr); }
+    .row-2col, .market-grid, .skills-grid{ grid-template-columns:1fr; }
+    .funnel{ grid-template-columns:1fr; }
+    .funnel-stage::after{ display:none; }
+    .funnel-stage{ padding:0 0 14px; border-bottom:1px solid var(--border); margin-bottom:14px; }
+    .funnel-stage:last-child{ border-bottom:none; margin-bottom:0; padding-bottom:0;}
+  }
+  @media (max-width: 560px){
+    .stat-grid{ grid-template-columns:1fr; }
+    .shell{ padding:20px 16px 60px; }
+    table{ font-size:11.5px; }
+    thead th:nth-child(4), tbody td:nth-child(4){ display:none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= AUTH SCREEN ================= -->
+<div id="authScreen" class="auth-wrap">
+  <p class="eyebrow-top">Job Search Analytics</p>
+  <h1 id="authTitle">로그인</h1>
+  <p class="sub">커리어 파인더 대시보드 · 1인 구직 활동 관리</p>
+  <div class="field"><label>이메일</label><input id="authEmail" type="email" autocomplete="username" placeholder="you@example.com"></div>
+  <div class="field"><label>비밀번호</label><input id="authPw" type="password" autocomplete="current-password" placeholder="********"></div>
+  <button id="authSubmitBtn" class="btn btn-primary btn-block">로그인</button>
+  <p class="auth-msg" id="authMsg"></p>
+  <div class="auth-row">
+    <button id="authToggleBtn" class="btn btn-block">계정이 없나요? 회원가입</button>
+  </div>
+</div>
+
+<!-- ================= MAIN APP ================= -->
+<div id="app" class="shell hidden">
+
+  <!-- ================= HEADER ================= -->
+  <header class="topbar">
+    <div>
+      <p class="eyebrow-top">Job Search Analytics</p>
+      <h1 class="brand-title">커리어 파인더 대시보드</h1>
+      <p class="brand-sub" id="brandSub">불러오는 중...</p>
+    </div>
+    <div class="topbar-right">
+      <div class="rt-indicators">
+        <span class="rt-chip rt-warn" id="rtWs"><span class="rt-dot"></span>실시간 연결 중...</span>
+        <span class="rt-chip rt-warn" id="rtSync"><span class="rt-dot"></span>동기화 정보 없음</span>
+      </div>
+      <div class="user-tag">
+        <div class="name" id="userName">-</div>
+        <div class="role" id="userRole">-</div>
+      </div>
+      <div class="next-event" id="nextEventBox" style="display:none;">
+        <div><div class="lbl">Next</div><div class="val" id="nextEventVal">-</div></div>
+        <span class="dday-num" id="nextEventDday">-</span>
+      </div>
+      <button class="btn btn-sm" id="logoutBtn">로그아웃</button>
+    </div>
+  </header>
+
+  <div id="wantedNotice" class="notice-banner hidden">⚠ 원티드 API 연동 대기 중입니다. 관리자가 Wanted 인증키를 등록하면 검색/동기화 기능이 활성화됩니다. 자체 데이터(지원현황·일정·스킬 등)는 정상 이용 가능합니다.</div>
+
+  <!-- ================= STAT CARDS ================= -->
+  <section class="stat-grid" aria-label="핵심 지표 요약" id="statGrid"></section>
+
+  <!-- ================= PIPELINE FUNNEL ================= -->
+  <section class="panel pipeline-card" aria-label="구직 파이프라인 현황" id="pipelinePanel">
+    <div class="sec-head">
+      <div><span class="sec-eyebrow">Pipeline Overview</span><h2>전형 단계별 현황</h2></div>
+      <span class="sec-note" id="pipelineNote">-</span>
+    </div>
+    <div class="funnel" id="funnelBox"></div>
+  </section>
+
+  <!-- ================= SCHEDULE + WATCHLIST ================= -->
+  <section class="row-2col">
+    <div class="panel" id="schedPanel">
+      <div class="sec-head">
+        <div><span class="sec-eyebrow">Upcoming</span><h2>일정 <span class="batch-note hidden" id="schedBatch"></span></h2></div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span class="sec-note">면접 · 과제 마감 · 결과 발표</span>
+          <button class="btn btn-sm" id="addSchedBtn">+ 일정 추가</button>
+        </div>
+      </div>
+      <div class="sched-list" id="schedList"></div>
+    </div>
+
+    <div class="panel" id="watchPanel">
+      <div class="sec-head">
+        <div><span class="sec-eyebrow">Watchlist</span><h2>관심기업 <span class="batch-note hidden" id="watchBatch"></span></h2></div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span class="sec-note" id="watchCountNote">-</span>
+          <button class="btn btn-sm" id="syncWatchBtn">동기화</button>
+          <button class="btn btn-sm" id="addWatchBtn">+ 추가</button>
+        </div>
+      </div>
+      <div class="watch-list" id="watchList"></div>
+      <p class="wl-note">마감일 정보는 일부 공고에서 제공되지 않을 수 있습니다</p>
+    </div>
+  </section>
+
+  <!-- ================= MARKET TREND ================= -->
+  <section class="market-grid">
+    <div class="panel">
+      <div class="sec-head">
+        <div><span class="sec-eyebrow">Market Data</span><h2>직군별 공고 동향</h2></div>
+        <span class="sec-note" id="marketNote">-</span>
+      </div>
+      <div class="chart-box"><canvas id="marketChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="sec-head"><div><span class="sec-eyebrow">Sub-role Tags</span><h2>직군별 인기 세부 직무</h2></div></div>
+      <div class="insight-list" id="marketInsightList"></div>
+      <p class="insight-source" id="marketSource">-</p>
+    </div>
+  </section>
+
+  <!-- ================= JOB SEARCH ================= -->
+  <section class="panel table-card" id="searchPanel">
+    <div class="sec-head">
+      <div><span class="sec-eyebrow">Explore</span><h2>공고 · 기업 검색</h2></div>
+      <span class="sec-note">Wanted 공개 API 기반</span>
+    </div>
+    <div class="search-bar">
+      <input type="text" id="jobQueryInput" placeholder="포지션/키워드 검색 (예: 서비스 기획)">
+      <select id="jobSortSelect">
+        <option value="job.latest_order">최신순</option>
+        <option value="job.popularity_order">인기순</option>
+        <option value="company.response_rate_order">응답률순</option>
+      </select>
+      <button class="btn btn-primary btn-sm" id="jobSearchBtn">검색</button>
+    </div>
+    <details class="adv-filter" id="advFilter">
+      <summary>더보기 (연차 · 지역 필터)</summary>
+      <div class="adv-filter-body">
+        <div class="field">
+          <label>최소 연차</label>
+          <select id="fYearsMin">
+            <option value="0">0년</option><option value="1">1년</option><option value="2">2년</option>
+            <option value="3">3년</option><option value="4">4년</option><option value="5">5년</option>
+            <option value="6">6년</option><option value="7">7년</option><option value="8">8년</option>
+            <option value="9">9년</option><option value="10">10년</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>최대 연차</label>
+          <select id="fYearsMax">
+            <option value="0">0년</option><option value="1">1년</option><option value="2">2년</option>
+            <option value="3">3년</option><option value="4">4년</option><option value="5">5년</option>
+            <option value="6">6년</option><option value="7">7년</option><option value="8">8년</option>
+            <option value="9">9년</option><option value="10" selected>10년+</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>지역 (쉼표로 구분)</label>
+          <input type="text" id="fLocations" placeholder="예: 서울, 판교">
+        </div>
+      </div>
+    </details>
+    <div id="jobResults"></div>
+  </section>
+
+  <!-- ================= SKILLS ================= -->
+  <section class="skills-grid">
+    <div class="panel">
+      <div class="sec-head">
+        <div><span class="sec-eyebrow">Readiness</span><h2>역량 현황</h2></div>
+        <button class="btn btn-sm" id="addSkillBtn">+ 스킬 추가</button>
+      </div>
+      <div id="skillList"></div>
+      <div class="cert-list" id="certList"></div>
+      <div style="margin-top:10px;"><button class="btn btn-sm" id="addCertBtn">+ 자격증 추가</button></div>
+    </div>
+
+    <div class="panel">
+      <div class="sec-head">
+        <div><span class="sec-eyebrow">This Month</span><h2>목표 달성률</h2></div>
+        <button class="btn btn-sm" id="addGoalBtn">+ 목표 추가</button>
+      </div>
+      <div id="goalList"></div>
+    </div>
+  </section>
+
+  <!-- ================= APPLICATION TABLE ================= -->
+  <section class="panel table-card" id="appPanel">
+    <div class="sec-head">
+      <div><span class="sec-eyebrow">Log</span><h2>지원 내역 <span class="batch-note hidden" id="appBatch"></span></h2></div>
+      <div class="tab-filters" role="tablist" aria-label="지원 내역 필터">
+        <button class="tab-btn active" data-filter="all">전체</button>
+        <button class="tab-btn" data-filter="review">서류심사</button>
+        <button class="tab-btn" data-filter="interview">면접예정</button>
+        <button class="tab-btn" data-filter="pass">합격</button>
+        <button class="tab-btn" data-filter="fail">불합격</button>
+      </div>
+    </div>
+    <div style="margin-top:10px;"><button class="btn btn-sm btn-primary" id="addAppBtn">+ 지원 추가</button></div>
+    <table>
+      <thead>
+        <tr><th>기업명</th><th>직무</th><th>지원일</th><th>현재 단계</th><th>상태</th><th></th></tr>
+      </thead>
+      <tbody id="appTableBody"></tbody>
+    </table>
+  </section>
+
+  <footer>
+    본 대시보드는 개인 구직 활동 관리용이며, 지원 현황·일정·스킬 데이터는 100% 사용자 입력입니다. 관심기업·채용시장 데이터는 원티드(Wanted) 공개 API를 Supabase Edge Function으로 동기화합니다.
+  </footer>
+</div>
+
+<!-- ================= MODAL ROOT ================= -->
+<div id="modalRoot"></div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const SUPABASE_URL = 'https://oezmgfudkhgkqkvjyihp.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_AjuU9V6rumnAlDyLL1cSUQ_tEaZhguN';
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const FN_URL = `${SUPABASE_URL}/functions/v1/sync-wanted`;
+
+let session = null;
+let profile = null;
+let wantedAvailable = true; // flips false on first failed edge call
+
+const state = {
+  applications: [],
+  schedules: [],
+  watchlistCompanies: [],
+  watchlistJobs: {}, // watchlist_company_id -> jobs[]
+  skills: [],
+  certifications: [],
+  goals: [],
+  marketInsight: [],
+  syncLogLatest: null,
+  appFilter: 'all',
+  openWatch: null,
+};
+
+/* ---------------- util ---------------- */
+function $(sel){ return document.querySelector(sel); }
+function $all(sel){ return document.querySelectorAll(sel); }
+function esc(s){ return (s ?? '').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtDate(d){ if(!d) return '-'; const dt = new Date(d); return `${dt.getFullYear()}.${String(dt.getMonth()+1).padStart(2,'0')}.${String(dt.getDate()).padStart(2,'0')}`; }
+function initials(name){ return (name||'?').trim().charAt(0).toUpperCase(); }
+function pickColor(seed){
+  const palette = ['#2F5CFF','#0E9C8B','#B4740E','#D23B5B','#6E56CF'];
+  let h = 0; for(const c of (seed||'')) h = (h*31 + c.charCodeAt(0)) % 997;
+  return palette[h % palette.length];
+}
+function daysUntil(dateLike){
+  const target = new Date(dateLike);
+  const now = new Date();
+  const diffMs = target - now;
+  return Math.ceil(diffMs / (1000*60*60*24));
+}
+function ddayLabel(dateLike){
+  const d = daysUntil(dateLike);
+  if(d === 0) return 'D-DAY';
+  return d > 0 ? `D-${d}` : `D+${Math.abs(d)}`;
+}
+function ddayClass(d){
+  if(d <= 1) return 'pill-urgent';
+  if(d <= 5) return 'pill-soon';
+  return 'pill-later';
+}
+function relTime(iso){
+  if(!iso) return null;
+  const diffMin = Math.floor((Date.now() - new Date(iso).getTime())/60000);
+  if(diffMin < 1) return '방금 전';
+  if(diffMin < 60) return `${diffMin}분 전`;
+  const h = Math.floor(diffMin/60);
+  if(h < 24) return `${h}시간 전`;
+  return `${Math.floor(h/24)}일 전`;
+}
+function flash(el){
+  if(!el) return;
+  el.classList.add('just-synced');
+  setTimeout(()=>el.classList.remove('just-synced'), 1600);
+}
+function showBatch(id, n){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.textContent = `${n}건 갱신됨`;
+  el.classList.remove('hidden');
+  setTimeout(()=>el.classList.add('hidden'), 4000);
+}
+function openOverlay(html){
+  const root = $('#modalRoot');
+  root.innerHTML = html;
+  root.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click', closeOverlay));
+  root.querySelectorAll('.overlay, .slideover-wrap').forEach(o=>{
+    o.addEventListener('click', (e)=>{ if(e.target === o) closeOverlay(); });
+  });
+}
+function closeOverlay(){ $('#modalRoot').innerHTML = ''; }
+
+async function callWanted(action, body={}){
+  try{
+    const token = session?.access_token || SUPABASE_ANON_KEY;
+    const res = await fetch(FN_URL, {
+      method:'POST',
+      headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' },
+      body: JSON.stringify({ action, ...body })
+    });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    wantedAvailable = true;
+    $('#wantedNotice').classList.add('hidden');
+    return json;
+  }catch(err){
+    console.warn('Wanted action failed:', action, err);
+    wantedAvailable = false;
+    $('#wantedNotice').classList.remove('hidden');
+    return null;
+  }
+}
+
+/* ================= AUTH ================= */
+let authMode = 'signin';
+$('#authToggleBtn').addEventListener('click', ()=>{
+  authMode = authMode === 'signin' ? 'signup' : 'signin';
+  $('#authTitle').textContent = authMode === 'signin' ? '로그인' : '회원가입';
+  $('#authSubmitBtn').textContent = authMode === 'signin' ? '로그인' : '회원가입';
+  $('#authToggleBtn').textContent = authMode === 'signin' ? '계정이 없나요? 회원가입' : '이미 계정이 있나요? 로그인';
+  $('#authMsg').textContent = '';
+});
+$('#authSubmitBtn').addEventListener('click', async ()=>{
+  const email = $('#authEmail').value.trim();
+  const password = $('#authPw').value;
+  const msg = $('#authMsg');
+  msg.textContent = '';
+  if(!email || !password){ msg.textContent = '이메일/비밀번호를 입력하세요.'; return; }
+  try{
+    if(authMode === 'signin'){
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if(error) throw error;
+    } else {
+      const { error } = await supabase.auth.signUp({ email, password });
+      if(error) throw error;
+      msg.style.color = 'var(--teal)';
+      msg.textContent = '가입 완료. 이메일 인증이 필요할 수 있습니다. 로그인해 주세요.';
+      return;
+    }
+  }catch(err){
+    msg.style.color = 'var(--rose)';
+    msg.textContent = err.message || '오류가 발생했습니다.';
+  }
+});
+$('#logoutBtn').addEventListener('click', async ()=>{ await supabase.auth.signOut(); });
+
+supabase.auth.onAuthStateChange((event, sess)=>{
+  session = sess;
+  if(sess){
+    $('#authScreen').classList.add('hidden');
+    $('#app').classList.remove('hidden');
+    boot();
+  } else {
+    $('#app').classList.add('hidden');
+    $('#authScreen').classList.remove('hidden');
+  }
+});
+
+/* ================= BOOT ================= */
+let booted = false;
+async function boot(){
+  if(booted) return; booted = true;
+  renderSkeleton();
+  try{
+    await ensureProfile();
+    await loadAll();
+    subscribeRealtime();
+  }catch(err){
+    console.error('boot() failed before market insight load:', err);
+  }
+  try{
+    await loadMarketInsight();
+  }catch(err){
+    console.error('loadMarketInsight failed:', err);
+    $('#marketNote').textContent = '불러오기 실패 (콘솔 확인)';
+  }
+}
+
+async function ensureProfile(){
+  const uid = session.user.id;
+  let { data, error } = await supabase.from('profiles').select('*').eq('id', uid).maybeSingle();
+  if(!data){
+    const defaults = {
+      id: uid,
+      display_name: session.user.email.split('@')[0],
+      target_role: '목표 직무 미설정',
+      prep_start_date: new Date().toISOString().slice(0,10)
+    };
+    const { data: created } = await supabase.from('profiles').insert(defaults).select().maybeSingle();
+    data = created || defaults;
+  }
+  profile = data;
+  $('#userName').textContent = profile.display_name || session.user.email;
+  $('#userRole').textContent = profile.target_role || '-';
+}
+
+function renderSkeleton(){
+  $('#statGrid').innerHTML = Array.from({length:4}).map(()=>`<div class="stat-card"><div class="skel" style="height:60px;"></div></div>`).join('');
+  $('#funnelBox').innerHTML = `<div class="skel" style="height:90px;grid-column:1/-1;"></div>`;
+  $('#schedList').innerHTML = `<div class="skel" style="height:60px;margin-bottom:10px;"></div><div class="skel" style="height:60px;"></div>`;
+  $('#watchList').innerHTML = `<div class="skel" style="height:52px;margin-bottom:10px;"></div><div class="skel" style="height:52px;"></div>`;
+  $('#appTableBody').innerHTML = `<tr><td colspan="6"><div class="skel" style="height:40px;"></div></td></tr>`;
+}
+
+async function loadAll(){
+  const uid = session.user.id;
+  const [apps, scheds, watch, skills, certs, goals, logs] = await Promise.all([
+    supabase.from('applications').select('*').eq('user_id', uid).order('applied_date', {ascending:false}),
+    supabase.from('schedules').select('*').eq('user_id', uid).order('event_date', {ascending:true}),
+    supabase.from('watchlist_companies').select('*').eq('user_id', uid).order('created_at', {ascending:false}),
+    supabase.from('skills').select('*').eq('user_id', uid).order('sort_order', {ascending:true}),
+    supabase.from('certifications').select('*').eq('user_id', uid),
+    supabase.from('monthly_goals').select('*').eq('user_id', uid),
+    supabase.from('sync_logs').select('*').eq('sync_type','watchlist_jobs').eq('status','success').order('ran_at',{ascending:false}).limit(1),
+  ]);
+  state.applications = apps.data || [];
+  state.schedules = scheds.data || [];
+  state.watchlistCompanies = watch.data || [];
+  state.skills = skills.data || [];
+  state.certifications = certs.data || [];
+  state.goals = goals.data || [];
+  state.syncLogLatest = (logs.data && logs.data[0]) || null;
+
+  renderHeader();
+  renderStatCards();
+  renderFunnel();
+  renderSchedules();
+  renderWatchlist();
+  renderSkills();
+  renderCerts();
+  renderGoals();
+  renderAppTable();
+  updateSyncIndicator();
+}
+
+/* ================= HEADER ================= */
+function renderHeader(){
+  const start = profile.prep_start_date ? new Date(profile.prep_start_date) : new Date();
+  const dayN = Math.max(1, Math.floor((Date.now() - start.getTime())/(1000*60*60*24)) + 1);
+  const today = new Date();
+  const dateStr = `${today.getFullYear()}.${String(today.getMonth()+1).padStart(2,'0')}.${String(today.getDate()).padStart(2,'0')}`;
+  $('#brandSub').innerHTML = `${dateStr} · 준비 <span class="mono">Day ${dayN}</span> · 목표 직무: ${esc(profile.target_role||'-')}`;
+
+  const upcoming = [...state.schedules].filter(s=>new Date(s.event_date) >= new Date()).sort((a,b)=>new Date(a.event_date)-new Date(b.event_date))[0];
+  if(upcoming){
+    $('#nextEventBox').style.display = '';
+    $('#nextEventVal').textContent = upcoming.title;
+    $('#nextEventDday').textContent = ddayLabel(upcoming.event_date);
+  } else {
+    $('#nextEventBox').style.display = 'none';
+  }
+}
+
+function updateSyncIndicator(){
+  const el = $('#rtSync');
+  if(!state.syncLogLatest){
+    el.className = 'rt-chip rt-warn';
+    el.innerHTML = `<span class="rt-dot"></span>동기화 이력 없음`;
+    return;
+  }
+  const minAgo = Math.floor((Date.now() - new Date(state.syncLogLatest.ran_at).getTime())/60000);
+  const warn = minAgo > 90;
+  el.className = `rt-chip ${warn?'rt-warn':'rt-ok'}`;
+  el.innerHTML = `<span class="rt-dot"></span>${relTime(state.syncLogLatest.ran_at)} 동기화`;
+}
+
+/* ================= STAT CARDS ================= */
+function renderStatCards(){
+  const apps = state.applications;
+  const total = apps.length;
+  const reviewed = apps.filter(a=>['review','interview','pass'].includes(a.status)).length;
+  const inProgress = apps.filter(a=>['review','interview'].includes(a.status)).length;
+  const interviewCnt = apps.filter(a=>a.status==='interview').length;
+  const passCnt = apps.filter(a=>a.status==='pass').length;
+  const passRate = total ? Math.round((reviewed/total)*100) : 0;
+  const goalPass = state.goals.find(g=>/합격|지원/.test(g.goal_name||''));
+
+  $('#statGrid').innerHTML = `
+    <div class="stat-card" style="--bar-color:var(--primary)">
+      <div class="label">총 지원 건수</div>
+      <div class="value mono">${total}<span>건</span></div>
+      <div class="delta">누적 기준</div>
+    </div>
+    <div class="stat-card" style="--bar-color:var(--teal)">
+      <div class="label">서류 통과율</div>
+      <div class="value mono">${passRate}<span>%</span></div>
+      <div class="delta">서류전형 이상 진행 ${reviewed}건 / ${total}건</div>
+    </div>
+    <div class="stat-card" style="--bar-color:var(--amber)">
+      <div class="label">진행 중인 전형</div>
+      <div class="value mono">${inProgress}<span>건</span></div>
+      <div class="delta">면접 ${interviewCnt} · 서류 ${inProgress-interviewCnt}</div>
+    </div>
+    <div class="stat-card" style="--bar-color:var(--violet)">
+      <div class="label">최종 합격</div>
+      <div class="value mono">${passCnt}<span>건</span></div>
+      <div class="delta">${total?`전체 대비 ${Math.round(passCnt/total*100)}%`:'-'}</div>
+    </div>
+  `;
+}
+
+/* ================= FUNNEL ================= */
+function renderFunnel(){
+  const apps = state.applications;
+  const total = apps.length;
+  const reached2 = apps.filter(a=>['review','interview','pass'].includes(a.status)).length;
+  const reached3 = apps.filter(a=>['interview','pass'].includes(a.status)).length;
+  const reached4 = apps.filter(a=>a.status==='pass').length;
+
+  $('#pipelineNote').textContent = `지원 ${total}건 기준 · 최종 전환율 ${total?Math.round(reached4/total*100):0}%`;
+
+  const stages = [
+    {label:'지원완료', count:total, color:'var(--primary)', conv:'기준 단계', pct:100},
+    {label:'서류전형', count:reached2, color:'var(--amber)', conv:total?`전환율 <b>${Math.round(reached2/total*100)}%</b>`:'-', pct: total? reached2/total*100:0},
+    {label:'면접 진행중', count:reached3, color:'var(--primary)', conv:reached2?`전환율 <b>${Math.round(reached3/reached2*100)}%</b>`:'-', pct: total? reached3/total*100:0, current:true},
+    {label:'최종합격', count:reached4, color:'var(--teal)', conv:reached3?`전환율 <b>${Math.round(reached4/reached3*100)}%</b>`:'-', pct: total? reached4/total*100:0},
+  ];
+  $('#funnelBox').innerHTML = stages.map(s=>`
+    <div class="funnel-stage ${s.current?'funnel-current':''}">
+      <div class="funnel-stage-inner">
+        <div class="stage-label"><span class="stage-dot" style="background:${s.color}"></span>${s.label}</div>
+        <div class="stage-count">${s.count}</div>
+        <div class="funnel-bar-track"><div class="funnel-bar-fill" style="width:${s.pct}%; background:${s.color};"></div></div>
+        <div class="conv">${s.conv}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ================= SCHEDULES ================= */
+function renderSchedules(){
+  const list = [...state.schedules].sort((a,b)=>new Date(a.event_date)-new Date(b.event_date));
+  if(!list.length){ $('#schedList').innerHTML = `<p class="sec-note">등록된 일정이 없습니다.</p>`; return; }
+  $('#schedList').innerHTML = list.map(s=>{
+    const d = new Date(s.event_date);
+    const dn = daysUntil(s.event_date);
+    return `<div class="sched-item" data-id="${s.id}">
+      <div class="sched-date"><b>${d.getMonth()+1}.${d.getDate()}</b>${d.toTimeString().slice(0,5)}</div>
+      <div class="sched-mid">
+        <div class="title">${esc(s.title)}</div>
+        <div class="sub">${esc(s.subtitle||'')}</div>
+      </div>
+      <span class="dday-pill ${ddayClass(dn)}">${ddayLabel(s.event_date)}</span>
+      <div class="sched-actions">
+        <button class="icon-btn" data-edit-sched="${s.id}">✎</button>
+        <button class="icon-btn" data-del-sched="${s.id}">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+  $all('[data-edit-sched]').forEach(b=>b.addEventListener('click', ()=>openSchedModal(b.dataset.editSched)));
+  $all('[data-del-sched]').forEach(b=>b.addEventListener('click', async ()=>{
+    if(!confirm('일정을 삭제할까요?')) return;
+    await supabase.from('schedules').delete().eq('id', b.dataset.delSched);
+  }));
+}
+
+/* ================= WATCHLIST ================= */
+function renderWatchlist(){
+  const list = state.watchlistCompanies;
+  $('#watchCountNote').textContent = `${list.length}곳 팔로우 중`;
+  if(!list.length){ $('#watchList').innerHTML = `<p class="sec-note">관심기업을 추가해 보세요.</p>`; return; }
+  $('#watchList').innerHTML = list.map(c=>{
+    const color = c.logo_color || pickColor(c.name);
+    const statusClass = c.status_label === 'urgent' ? 'status-urgent' : c.status_label === 'always' ? 'status-always' : 'status-open';
+    const statusText = c.status_label === 'urgent' ? '마감임박' : c.status_label === 'always' ? '상시채용' : '모집중';
+    return `<div class="watch-item" data-id="${c.id}" data-wcid="${c.wanted_company_id}">
+      <div class="logo-chip" style="background:${color};">${initials(c.name)}</div>
+      <div class="watch-mid"><div class="name">${esc(c.name)}</div><div class="cat">${esc(c.category||'-')} · 공고 ${c.open_position_count||0}건</div></div>
+      <span class="status-badge ${statusClass}">${statusText}</span>
+    </div>
+    <div class="watch-jobs hidden" data-jobs-for="${c.id}"></div>`;
+  }).join('');
+  $all('.watch-item').forEach(el=>el.addEventListener('click', ()=>toggleWatchJobs(el.dataset.id, el.dataset.wcid)));
+}
+
+async function toggleWatchJobs(companyId, wantedCompanyId){
+  const box = document.querySelector(`[data-jobs-for="${companyId}"]`);
+  if(!box) return;
+  if(state.openWatch === companyId){
+    box.classList.add('hidden');
+    state.openWatch = null;
+    return;
+  }
+  document.querySelectorAll('.watch-jobs').forEach(b=>b.classList.add('hidden'));
+  state.openWatch = companyId;
+  box.classList.remove('hidden');
+  box.innerHTML = `<div class="skel" style="height:40px;"></div>`;
+  let jobs = state.watchlistJobs[companyId];
+  if(!jobs){
+    const { data } = await supabase.from('watchlist_company_jobs').select('*').eq('watchlist_company_id', companyId).order('synced_at',{ascending:false});
+    jobs = data || [];
+    state.watchlistJobs[companyId] = jobs;
+  }
+  renderWatchJobsBox(companyId);
+  box.insertAdjacentHTML('beforeend', `<div style="display:flex;gap:8px;margin-top:8px;">
+    <button class="btn btn-sm" data-company-insight="${wantedCompanyId}">기업 상세 인사이트</button>
+    <button class="btn btn-sm btn-danger" data-remove-watch="${companyId}">관심기업 삭제</button>
+  </div>`);
+  box.querySelector(`[data-company-insight]`).addEventListener('click', (e)=>{ e.stopPropagation(); openCompanyInsight(wantedCompanyId); });
+  box.querySelector(`[data-remove-watch]`).addEventListener('click', async (e)=>{
+    e.stopPropagation();
+    if(!confirm('관심기업에서 삭제할까요?')) return;
+    await supabase.from('watchlist_companies').delete().eq('id', companyId);
+  });
+}
+
+function renderWatchJobsBox(companyId){
+  const box = document.querySelector(`[data-jobs-for="${companyId}"]`);
+  if(!box) return;
+  const jobs = state.watchlistJobs[companyId] || [];
+  if(!jobs.length){
+    box.innerHTML = `<p class="sec-note">동기화된 공고가 없습니다.</p>`;
+    return;
+  }
+  box.innerHTML = jobs.map(j=>{
+    const isNew = j.first_seen_at && (Date.now() - new Date(j.first_seen_at).getTime()) < 86400000;
+    const rewardBadge = (j.reward_total && j.reward_total !== '0') ? `<span class="badge-reward">${esc(j.reward_total)}</span>` : '';
+    const closedBadge = j.status === 'closed' ? `<span class="badge-closed">마감</span>` : '';
+    const ddayBadge = j.due_time ? `<span class="badge-dday">${ddayLabel(j.due_time)}</span>` : '';
+    const newBadge = isNew ? `<span class="badge-new">NEW</span>` : '';
+    return `<div class="wj-row">
+      ${j.url ? `<a href="${esc(j.url)}" target="_blank" rel="noopener">${esc(j.position)}</a>` : `<span style="flex:1;">${esc(j.position)}</span>`}
+      ${newBadge}${rewardBadge}${ddayBadge}${closedBadge}
+    </div>`;
+  }).join('');
+}
+
+/* ================= APPLICATIONS TABLE ================= */
+function renderAppTable(){
+  const rows = state.applications.filter(a => state.appFilter==='all' || a.status===state.appFilter);
+  if(!rows.length){ $('#appTableBody').innerHTML = `<tr><td colspan="6" class="sec-note">지원 내역이 없습니다.</td></tr>`; return; }
+  const stMap = {review:['서류심사','st-review'], interview:['면접예정','st-interview'], pass:['합격','st-pass'], fail:['불합격','st-fail']};
+  $('#appTableBody').innerHTML = rows.map(a=>{
+    const [label, cls] = stMap[a.status] || ['-',''];
+    const color = a.company_logo_color || pickColor(a.company_name);
+    return `<tr data-status="${a.status}" data-id="${a.id}">
+      <td><div class="company-cell"><span class="mini-logo" style="background:${color};">${initials(a.company_name)}</span>${esc(a.company_name)}</div></td>
+      <td>${esc(a.position)}</td>
+      <td class="mono">${fmtDate(a.applied_date)}</td>
+      <td>${esc(a.current_stage||'-')}</td>
+      <td><span class="row-status ${cls}">${label}</span></td>
+      <td>
+        <button class="icon-btn" data-edit-app="${a.id}">✎</button>
+        <button class="icon-btn" data-del-app="${a.id}">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+  $all('[data-edit-app]').forEach(b=>b.addEventListener('click', ()=>openAppModal(b.dataset.editApp)));
+  $all('[data-del-app]').forEach(b=>b.addEventListener('click', async ()=>{
+    if(!confirm('지원 내역을 삭제할까요?')) return;
+    await supabase.from('applications').delete().eq('id', b.dataset.delApp);
+  }));
+}
+
+$all('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    $all('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    state.appFilter = btn.dataset.filter;
+    renderAppTable();
+  });
+});
+
+/* ================= SKILLS / CERTS / GOALS ================= */
+function renderSkills(){
+  const list = state.skills;
+  if(!list.length){ $('#skillList').innerHTML = `<p class="sec-note">등록된 스킬이 없습니다.</p>`; return; }
+  $('#skillList').innerHTML = list.map(s=>{
+    const wantedBadge = s.wanted_skill_tag_id ? `<span class="badge-wanted-tag">🔗 Wanted 태그</span>` : '';
+    return `
+    <div class="skill-row">
+      <div class="body">
+        <div class="top"><span>${esc(s.skill_name)} ${wantedBadge}</span><span class="pct">${s.readiness_pct}%</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${s.readiness_pct}%;"></div></div>
+      </div>
+      <button class="icon-btn" data-del-skill="${s.id}">✕</button>
+    </div>`;
+  }).join('');
+  $all('[data-del-skill]').forEach(b=>b.addEventListener('click', async ()=>{
+    await supabase.from('skills').delete().eq('id', b.dataset.delSkill);
+  }));
+}
+function renderCerts(){
+  const list = state.certifications;
+  if(!list.length){ $('#certList').innerHTML = `<span class="sec-note">등록된 자격증이 없습니다.</span>`; return; }
+  $('#certList').innerHTML = list.map(c=>{
+    const done = c.status === 'done';
+    const label = done ? `${esc(c.cert_name)} 취득` : `${esc(c.cert_name)} 준비중${c.target_date?` · ${ddayLabel(c.target_date)}`:''}`;
+    return `<span class="cert-chip ${done?'cert-done':'cert-ing'}">${label}<span class="x" data-del-cert="${c.id}">✕</span></span>`;
+  }).join('');
+  $all('[data-del-cert]').forEach(b=>b.addEventListener('click', async ()=>{
+    await supabase.from('certifications').delete().eq('id', b.dataset.delCert);
+  }));
+}
+function renderGoals(){
+  const list = state.goals;
+  if(!list.length){ $('#goalList').innerHTML = `<p class="sec-note">등록된 목표가 없습니다.</p>`; return; }
+  $('#goalList').innerHTML = list.map(g=>{
+    const pct = g.target_value ? Math.min(100, Math.round((g.current_value/g.target_value)*100)) : 0;
+    return `<div class="skill-row">
+      <div class="body">
+        <div class="top"><span>${esc(g.goal_name)}</span><span class="pct">${g.current_value}${g.unit?` ${esc(g.unit)}`:''} / ${g.target_value}${g.unit?` ${esc(g.unit)}`:''}</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%;"></div></div>
+      </div>
+      <button class="icon-btn" data-del-goal="${g.id}">✕</button>
+    </div>`;
+  }).join('');
+  $all('[data-del-goal]').forEach(b=>b.addEventListener('click', async ()=>{
+    await supabase.from('monthly_goals').delete().eq('id', b.dataset.delGoal);
+  }));
+}
+
+/* ================= MARKET INSIGHT ================= */
+let marketChart = null;
+async function loadMarketInsight(){
+  const { data, error } = await supabase.from('market_insight_cache').select('*').order('job_count_sample', {ascending:false});
+  if(error) console.error('market_insight_cache select error:', error);
+  state.marketInsight = data || [];
+  renderMarketInsight();
+}
+function renderMarketInsight(){
+  const list = state.marketInsight;
+  if(!list.length){
+    $('#marketNote').textContent = '데이터 없음';
+    $('#marketInsightList').innerHTML = `<p class="sec-note">아직 시장 인사이트 배치 집계가 없습니다.</p>`;
+    $('#marketSource').textContent = '';
+    return;
+  }
+  const snapshot = list[0].snapshot_date;
+  $('#marketNote').textContent = `집계 기준일 ${snapshot} · 일 1회 배치 집계 (실시간 아님)`;
+  $('#marketSource').textContent = `자료: 원티드 OpenAPI(/tags/categories, /jobs 카테고리별 페이지 순회 집계), ${list[0].synced_at||''} 기준 · 하루 1회 갱신`;
+
+  const colors = ['#2F5CFF','#0E9C8B','#B4740E','#D23B5B','#6E56CF'];
+  $('#marketInsightList').innerHTML = list.slice(0,8).map((m,i)=>{
+    const jobCountText = m.has_more ? `${m.job_count_sample}건+` : `${m.job_count_sample}건`;
+    const tags = (m.top_skill_tags||[]).slice(0,6).map(t=>`<span class="tag-chip">${esc(t.title)}${t.count?` ${t.count}`:''}</span>`).join('');
+    return `<div class="insight-item" style="--accent:${colors[i%colors.length]}">
+      <b>${esc(m.category_title)} · ${jobCountText}</b>
+      ${tags || '세부 직무 태그 데이터 없음'}
+    </div>`;
+  }).join('');
+
+  const ctx = document.getElementById('marketChart');
+  if(window.Chart && ctx){
+    if(marketChart) marketChart.destroy();
+    const top = list.slice(0,8);
+    marketChart = new Chart(ctx, {
+      type:'bar',
+      data:{
+        labels: top.map(m=>m.category_title),
+        datasets:[{
+          label:'공고 표본 수',
+          data: top.map(m=>m.job_count_sample),
+          backgroundColor: top.map((_,i)=>colors[i%colors.length]),
+          borderRadius:4, maxBarThickness:42
+        }]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ display:false } },
+        scales:{
+          y:{ beginAtZero:true, grid:{ color:'#E6E8EC' }, ticks:{ color:'#9AA0AC', font:{family:'IBM Plex Mono', size:10.5} } },
+          x:{ grid:{ display:false }, ticks:{ color:'#12151C', font:{ size: 11, weight: 600 } } }
+        }
+      }
+    });
+  }
+}
+
+/* ================= JOB SEARCH ================= */
+$('#jobSearchBtn').addEventListener('click', runJobSearch);
+$('#jobQueryInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') runJobSearch(); });
+async function runJobSearch(){
+  const query = $('#jobQueryInput').value.trim();
+  const sort = $('#jobSortSelect').value;
+  const yearsMin = parseInt($('#fYearsMin').value, 10) || 0;
+  const yearsMax = parseInt($('#fYearsMax').value, 10);
+  const locations = $('#fLocations').value.split(',').map(s=>s.trim()).filter(Boolean);
+  $('#jobResults').innerHTML = `<div class="skel" style="height:60px;margin-bottom:8px;"></div><div class="skel" style="height:60px;"></div>`;
+  const res = await callWanted('search_jobs_v2', {
+    category_tag: null, sort, offset:0, limit:20, query,
+    years: { min: yearsMin, max: yearsMax },
+    locations
+  });
+  if(!res){
+    $('#jobResults').innerHTML = `<p class="sec-note">원티드 연동 대기 중 — 검색을 사용할 수 없습니다.</p>`;
+    return;
+  }
+  const list = res.result?.data || res.result?.jobs || res.data || res.jobs || [];
+  if(!list.length){ $('#jobResults').innerHTML = `<p class="sec-note">검색 결과가 없습니다.</p>`; return; }
+  $('#jobResults').innerHTML = list.map(j=>{
+    const companyName = j.company?.name || '-';
+    const dueBadge = j.due_time ? `<span class="badge-dday">${esc(j.due_time)} 마감</span>` : '';
+    const rewardBadge = (j.reward?.total && j.reward.total !== '0') ? `<span class="badge-reward">${esc(j.reward.total)}</span>` : '';
+    const empBadge = j.employment_type ? `<span class="tag-chip">${esc(j.employment_type)}</span>` : '';
+    const thumbUrl = j.title_img?.thumb || j.logo_img?.thumb || '';
+    const thumbHtml = thumbUrl
+      ? `<img src="${esc(thumbUrl)}" loading="lazy" alt="" style="width:48px;height:48px;object-fit:cover;border-radius:var(--radius-sm);flex-shrink:0;" onerror="this.remove();">`
+      : '';
+    return `<div class="job-result">
+      ${thumbHtml}
+      <div class="job-mid">
+        <div class="jtitle">${esc(j.name)}</div>
+        <div class="jco">${esc(companyName)}</div>
+        <div class="job-badges">${empBadge}${dueBadge}${rewardBadge}</div>
+      </div>
+      <div class="job-actions">
+        <button class="btn btn-sm" data-job-detail="${j.id}">상세보기</button>
+        <button class="btn btn-sm btn-primary" data-add-app-job='${esc(JSON.stringify({company:companyName, position:j.name, wcid:j.company?.id||null}))}'>지원 내역에 추가</button>
+      </div>
+    </div>`;
+  }).join('');
+  $all('[data-add-app-job]').forEach(b=>b.addEventListener('click', async ()=>{
+    const info = JSON.parse(b.dataset.addAppJob);
+    await supabase.from('applications').insert({
+      user_id: session.user.id,
+      company_name: info.company,
+      position: info.position,
+      wanted_company_id: info.wcid,
+      applied_date: new Date().toISOString().slice(0,10),
+      status: 'review',
+      current_stage: '지원 완료'
+    });
+    alert('지원 내역에 추가했습니다.');
+  }));
+  $all('[data-job-detail]').forEach(b=>b.addEventListener('click', ()=>openJobDetailModal(b.dataset.jobDetail)));
+}
+
+/* ================= JOB DETAIL MODAL (5min cache) ================= */
+const jobDetailCache = new Map();
+const JOB_DETAIL_TTL = 5*60*1000;
+async function openJobDetailModal(jobId){
+  openOverlay(`<div class="slideover-wrap"><div class="slideover">
+    <button class="close-x" data-close>✕</button>
+    <h3>공고 상세</h3>
+    <div id="jobDetailBody"><div class="skel" style="height:220px;"></div></div>
+  </div></div>`);
+  const body = $('#jobDetailBody');
+  const cached = jobDetailCache.get(jobId);
+  let job;
+  if(cached && (Date.now() - cached.ts) < JOB_DETAIL_TTL){
+    job = cached.data;
+  } else {
+    const res = await callWanted('job_detail', { job_id: parseInt(jobId, 10) });
+    if(!res){
+      body.innerHTML = `<p class="sec-note">원티드 연동 대기 중 — 상세 정보를 불러올 수 없습니다.</p>`;
+      return;
+    }
+    job = res.result;
+    jobDetailCache.set(jobId, { data: job, ts: Date.now() });
+  }
+  if(!$('#jobDetailBody')) return; // overlay closed while loading
+  if(!job){
+    body.innerHTML = `<p class="sec-note">상세 정보를 불러올 수 없습니다.</p>`;
+    return;
+  }
+  const detail = job.detail || job;
+  const rows = [
+    ['소개', detail.intro],
+    ['주요업무', detail.main_tasks],
+    ['자격요건', detail.requirements],
+    ['우대사항', detail.preferred_points],
+    ['혜택 및 복지', detail.benefits],
+    ['채용 절차', detail.hire_rounds],
+  ].filter(([,v])=>v);
+
+  const images = Array.isArray(job.images) ? job.images.filter(im=>im && (im.thumb || im.origin)) : [];
+  const galleryHtml = images.length ? `
+    <div class="job-gallery" style="display:flex;gap:8px;overflow-x:auto;margin-bottom:18px;padding-bottom:4px;">
+      ${images.map(im=>`
+        <img src="${esc(im.thumb || im.origin)}" data-full="${esc(im.origin || im.thumb)}" loading="lazy" alt="공고 이미지"
+          style="width:100px;height:70px;object-fit:cover;border-radius:var(--radius-sm);flex-shrink:0;cursor:pointer;border:1px solid var(--border);"
+          onerror="this.remove();">
+      `).join('')}
+    </div>` : '';
+
+  if(!rows.length && !galleryHtml){
+    body.innerHTML = `<p class="sec-note">상세 정보가 제공되지 않습니다.</p>`;
+    return;
+  }
+  body.innerHTML = galleryHtml + rows.map(([k,v])=>`
+    <div style="margin-bottom:18px;">
+      <div style="font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:6px;">${esc(k)}</div>
+      <div style="font-size:12.5px;line-height:1.7;white-space:pre-line;">${esc(v)}</div>
+    </div>`).join('');
+  body.querySelectorAll('.job-gallery img').forEach(img=>{
+    img.addEventListener('click', ()=>window.open(img.dataset.full, '_blank', 'noopener'));
+  });
+}
+
+/* ================= WATCHLIST ADD ================= */
+$('#addWatchBtn').addEventListener('click', openAddWatchModal);
+function openAddWatchModal(){
+  openOverlay(`<div class="overlay"><div class="modal">
+    <button class="close-x" data-close>✕</button>
+    <h3>관심기업 추가</h3>
+    <div class="field"><label>기업명 검색</label><input id="wcQuery" type="text" placeholder="예: 네이버"></div>
+    <div id="wcResults" style="max-height:280px;overflow-y:auto;"></div>
+  </div></div>`);
+  const input = $('#wcQuery');
+  let t;
+  input.addEventListener('input', ()=>{
+    clearTimeout(t);
+    t = setTimeout(async ()=>{
+      const q = input.value.trim();
+      if(!q){ $('#wcResults').innerHTML=''; return; }
+      $('#wcResults').innerHTML = `<div class="skel" style="height:40px;"></div>`;
+      const res = await callWanted('search_company', { query: q, offset:0, limit:10 });
+      if(!res){ $('#wcResults').innerHTML = `<p class="sec-note">원티드 연동 대기 중 — 검색을 사용할 수 없습니다.</p>`; return; }
+      const list = res.result?.data || res.result?.companies || res.data || res.companies || [];
+      if(!list.length){ $('#wcResults').innerHTML = `<p class="sec-note">검색 결과가 없습니다.</p>`; return; }
+      $('#wcResults').innerHTML = list.map(c=>{
+        const thumbUrl = c.logo_img?.thumb || c.title_img?.thumb || '';
+        const thumbHtml = thumbUrl
+          ? `<img src="${esc(thumbUrl)}" loading="lazy" alt="" style="width:48px;height:48px;object-fit:cover;border-radius:var(--radius-sm);flex-shrink:0;" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'logo-chip',style:'background:${pickColor(c.name)}',textContent:'${initials(c.name)}'}));">`
+          : `<div class="logo-chip" style="background:${pickColor(c.name)};">${initials(c.name)}</div>`;
+        return `<div class="job-result">
+          ${thumbHtml}
+          <div class="job-mid">
+            <div class="jtitle">${esc(c.name)}</div>
+            ${c.description ? `<div class="jco" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${esc(c.description)}</div>` : ''}
+          </div>
+          <div class="job-actions">
+            <button class="btn btn-sm btn-primary" data-pick-company="${c.id}" data-pick-name="${esc(c.name)}">추가</button>
+          </div>
+        </div>`;
+      }).join('');
+      $all('[data-pick-company]').forEach(b=>b.addEventListener('click', async ()=>{
+        const wcid = parseInt(b.dataset.pickCompany, 10);
+        const name = b.dataset.pickName;
+        const { data: inserted, error } = await supabase.from('watchlist_companies').insert({
+          user_id: session.user.id, wanted_company_id: wcid, name, logo_color: pickColor(name)
+        }).select().maybeSingle();
+        if(error){ alert('이미 추가된 기업이거나 오류가 발생했습니다: '+error.message); return; }
+        closeOverlay();
+        if(inserted) callWanted('sync_company_biz', { watchlist_company_id: inserted.id });
+      }));
+    }, 300);
+  });
+}
+
+$('#syncWatchBtn').addEventListener('click', async ()=>{
+  const res = await callWanted('sync_watchlist_jobs', {});
+  if(!res) alert('원티드 연동 대기 중 — 동기화를 사용할 수 없습니다.');
+  else alert('동기화를 요청했습니다.');
+});
+
+/* ================= COMPANY INSIGHT SLIDEOVER ================= */
+async function openCompanyInsight(wantedCompanyId){
+  openOverlay(`<div class="slideover-wrap"><div class="slideover">
+    <button class="close-x" data-close>✕</button>
+    <h3>기업 상세 인사이트</h3>
+    <div id="bizInsightBody"><div class="skel" style="height:200px;"></div></div>
+  </div></div>`);
+  const { data } = await supabase.from('company_biz_insight').select('*').eq('wanted_company_id', wantedCompanyId).maybeSingle();
+  const body = $('#bizInsightBody');
+  if(!data){
+    body.innerHTML = `<p class="sec-note">아직 조회된 사업자 인사이트가 없습니다. 관심기업 등록 시 자동 조회됩니다.</p>`;
+    return;
+  }
+  const rows = [
+    ['사업자등록번호', data.biz_no || '비공개'],
+    ['대표자명', data.ceo_name || '비공개'],
+    ['설립일', data.founded_date ? fmtDate(data.founded_date) : '비공개'],
+    ['업력', data.age_years != null ? `${data.age_years}년` : '비공개'],
+    ['고용보험 가입자 수 (회사 규모 추정 지표)', data.employee_count_ei != null ? `${data.employee_count_ei}명` : '비공개'],
+    ['업종', data.industry_name || '비공개'],
+  ];
+  body.innerHTML = rows.map(([k,v])=>`<div class="insight-row"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>`).join('');
+}
+
+/* ================= MODALS: schedule / application / skill / cert / goal ================= */
+function openSchedModal(id){
+  const s = id ? state.schedules.find(x=>x.id===id) : null;
+  openOverlay(`<div class="overlay"><div class="modal">
+    <button class="close-x" data-close>✕</button>
+    <h3>${s?'일정 수정':'일정 추가'}</h3>
+    <div class="field"><label>제목</label><input id="fTitle" value="${s?esc(s.title):''}"></div>
+    <div class="field"><label>부제목</label><input id="fSubtitle" value="${s?esc(s.subtitle||''):''}"></div>
+    <div class="field"><label>일시</label><input id="fDate" type="datetime-local" value="${s?new Date(s.event_date).toISOString().slice(0,16):''}"></div>
+    <div class="field"><label>유형</label>
+      <select id="fType">
+        <option value="interview" ${s?.event_type==='interview'?'selected':''}>면접</option>
+        <option value="deadline" ${s?.event_type==='deadline'?'selected':''}>마감</option>
+        <option value="announcement" ${s?.event_type==='announcement'?'selected':''}>결과발표</option>
+        <option value="etc" ${s?.event_type==='etc'?'selected':''}>기타</option>
+      </select>
+    </div>
+    <div class="modal-actions"><button class="btn" data-close>취소</button><button class="btn btn-primary" id="fSave">저장</button></div>
+  </div></div>`);
+  $('#fSave').addEventListener('click', async ()=>{
+    const payload = {
+      user_id: session.user.id,
+      title: $('#fTitle').value.trim(),
+      subtitle: $('#fSubtitle').value.trim() || null,
+      event_date: new Date($('#fDate').value).toISOString(),
+      event_type: $('#fType').value,
+    };
+    if(!payload.title || !$('#fDate').value){ alert('제목과 일시를 입력하세요.'); return; }
+    if(s) await supabase.from('schedules').update(payload).eq('id', s.id);
+    else await supabase.from('schedules').insert(payload);
+    closeOverlay();
+  });
+}
+$('#addSchedBtn').addEventListener('click', ()=>openSchedModal(null));
+
+function openAppModal(id){
+  const a = id ? state.applications.find(x=>x.id===id) : null;
+  openOverlay(`<div class="overlay"><div class="modal">
+    <button class="close-x" data-close>✕</button>
+    <h3>${a?'지원 내역 수정':'지원 내역 추가'}</h3>
+    <div class="field"><label>회사명</label><input id="fCompany" value="${a?esc(a.company_name):''}"></div>
+    <div class="field"><label>직무</label><input id="fPosition" value="${a?esc(a.position):''}"></div>
+    <div class="field"><label>지원일</label><input id="fApplied" type="date" value="${a?a.applied_date:''}"></div>
+    <div class="field"><label>현재 단계</label><input id="fStage" value="${a?esc(a.current_stage||''):''}"></div>
+    <div class="field"><label>상태</label>
+      <select id="fStatus">
+        <option value="review" ${a?.status==='review'?'selected':''}>서류심사</option>
+        <option value="interview" ${a?.status==='interview'?'selected':''}>면접예정</option>
+        <option value="pass" ${a?.status==='pass'?'selected':''}>합격</option>
+        <option value="fail" ${a?.status==='fail'?'selected':''}>불합격</option>
+      </select>
+    </div>
+    <div class="field"><label>메모</label><textarea id="fNotes" rows="2">${a?esc(a.notes||''):''}</textarea></div>
+    <div class="modal-actions"><button class="btn" data-close>취소</button><button class="btn btn-primary" id="fSave">저장</button></div>
+  </div></div>`);
+  $('#fSave').addEventListener('click', async ()=>{
+    const payload = {
+      user_id: session.user.id,
+      company_name: $('#fCompany').value.trim(),
+      company_logo_color: pickColor($('#fCompany').value.trim()),
+      position: $('#fPosition').value.trim(),
+      applied_date: $('#fApplied').value || new Date().toISOString().slice(0,10),
+      current_stage: $('#fStage').value.trim() || null,
+      status: $('#fStatus').value,
+      notes: $('#fNotes').value.trim() || null,
+    };
+    if(!payload.company_name || !payload.position){ alert('회사명과 직무를 입력하세요.'); return; }
+    if(a) await supabase.from('applications').update(payload).eq('id', a.id);
+    else await supabase.from('applications').insert(payload);
+    closeOverlay();
+  });
+}
+$('#addAppBtn').addEventListener('click', ()=>openAppModal(null));
+
+$('#addSkillBtn').addEventListener('click', ()=>{
+  openOverlay(`<div class="overlay"><div class="modal">
+    <button class="close-x" data-close>✕</button>
+    <h3>스킬 추가</h3>
+    <div class="field ac-wrap">
+      <label>스킬명</label>
+      <input id="fSkillName" autocomplete="off" placeholder="입력 시 원티드 스킬태그 자동완성">
+      <div id="skillAcDropdown" class="ac-dropdown hidden"></div>
+    </div>
+    <div class="field"><label>준비도(%)</label><input id="fSkillPct" type="number" min="0" max="100" value="50"></div>
+    <div class="modal-actions"><button class="btn" data-close>취소</button><button class="btn btn-primary" id="fSave">저장</button></div>
+  </div></div>`);
+
+  let selectedSkillTagId = null;
+  const nameInput = $('#fSkillName');
+  const dropdown = $('#skillAcDropdown');
+  let acTimer;
+  nameInput.addEventListener('input', ()=>{
+    selectedSkillTagId = null; // manual typing invalidates previous selection
+    const keyword = nameInput.value.trim();
+    clearTimeout(acTimer);
+    if(!keyword){ dropdown.classList.add('hidden'); dropdown.innerHTML=''; return; }
+    acTimer = setTimeout(async ()=>{
+      const res = await callWanted('autocomplete_skill', { keyword });
+      const list = (res && (res.result?.data || res.result?.skills || res.data || res.tags || res.skill_tags)) || [];
+      if(!list.length){ dropdown.classList.add('hidden'); dropdown.innerHTML=''; return; }
+      dropdown.innerHTML = list.slice(0,8).map(t=>`<div class="ac-item" data-tag-id="${t.id}" data-tag-title="${esc(t.title||t.name)}">${esc(t.title||t.name)}</div>`).join('');
+      dropdown.classList.remove('hidden');
+      dropdown.querySelectorAll('.ac-item').forEach(item=>{
+        item.addEventListener('click', ()=>{
+          nameInput.value = item.dataset.tagTitle;
+          selectedSkillTagId = parseInt(item.dataset.tagId, 10);
+          dropdown.classList.add('hidden');
+          dropdown.innerHTML = '';
+        });
+      });
+    }, 300);
+  });
+  document.addEventListener('click', function outsideClose(e){
+    if(!dropdown.contains(e.target) && e.target !== nameInput){ dropdown.classList.add('hidden'); }
+  });
+
+  $('#fSave').addEventListener('click', async ()=>{
+    const name = $('#fSkillName').value.trim();
+    if(!name) { alert('스킬명을 입력하세요.'); return; }
+    await supabase.from('skills').insert({
+      user_id: session.user.id, skill_name: name,
+      wanted_skill_tag_id: selectedSkillTagId,
+      readiness_pct: Math.min(100, Math.max(0, parseInt($('#fSkillPct').value,10) || 0)),
+      sort_order: state.skills.length
+    });
+    closeOverlay();
+  });
+});
+
+$('#addCertBtn').addEventListener('click', ()=>{
+  openOverlay(`<div class="overlay"><div class="modal">
+    <button class="close-x" data-close>✕</button>
+    <h3>자격증 추가</h3>
+    <div class="field"><label>자격증명</label><input id="fCertName"></div>
+    <div class="field"><label>상태</label>
+      <select id="fCertStatus"><option value="in_progress">준비중</option><option value="done">취득</option></select>
+    </div>
+    <div class="field"><label>목표일(준비중인 경우)</label><input id="fCertDate" type="date"></div>
+    <div class="modal-actions"><button class="btn" data-close>취소</button><button class="btn btn-primary" id="fSave">저장</button></div>
+  </div></div>`);
+  $('#fSave').addEventListener('click', async ()=>{
+    const name = $('#fCertName').value.trim();
+    if(!name) { alert('자격증명을 입력하세요.'); return; }
+    await supabase.from('certifications').insert({
+      user_id: session.user.id, cert_name: name, status: $('#fCertStatus').value,
+      target_date: $('#fCertDate').value || null
+    });
+    closeOverlay();
+  });
+});
+
+$('#addGoalBtn').addEventListener('click', ()=>{
+  openOverlay(`<div class="overlay"><div class="modal">
+    <button class="close-x" data-close>✕</button>
+    <h3>이달의 목표 추가</h3>
+    <div class="field"><label>목표명</label><input id="fGoalName" placeholder="예: 신규 지원 10건"></div>
+    <div class="field"><label>목표값</label><input id="fGoalTarget" type="number" value="10"></div>
+    <div class="field"><label>현재값</label><input id="fGoalCurrent" type="number" value="0"></div>
+    <div class="field"><label>단위</label><input id="fGoalUnit" placeholder="건 / % / 회"></div>
+    <div class="modal-actions"><button class="btn" data-close>취소</button><button class="btn btn-primary" id="fSave">저장</button></div>
+  </div></div>`);
+  $('#fSave').addEventListener('click', async ()=>{
+    const name = $('#fGoalName').value.trim();
+    if(!name){ alert('목표명을 입력하세요.'); return; }
+    const now = new Date();
+    await supabase.from('monthly_goals').insert({
+      user_id: session.user.id, goal_name: name,
+      target_value: parseFloat($('#fGoalTarget').value) || 0,
+      current_value: parseFloat($('#fGoalCurrent').value) || 0,
+      unit: $('#fGoalUnit').value.trim() || null,
+      period_month: `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`
+    });
+    closeOverlay();
+  });
+});
+
+/* ================= REALTIME ================= */
+let changeBuffer = { applications:0, schedules:0, watchlist_companies:0, watchlist_company_jobs:0 };
+let bufferTimer = null;
+function queueChange(table){
+  changeBuffer[table] = (changeBuffer[table]||0) + 1;
+  if(bufferTimer) return;
+  bufferTimer = setTimeout(()=>{
+    Object.entries(changeBuffer).forEach(([t,n])=>{
+      if(n <= 0) return;
+      if(t==='applications') n===1 ? flash($('#appPanel')) : showBatch('appBatch', n);
+      if(t==='schedules') n===1 ? flash($('#schedPanel')) : showBatch('schedBatch', n);
+      if(t==='watchlist_companies' || t==='watchlist_company_jobs') n===1 ? flash($('#watchPanel')) : showBatch('watchBatch', n);
+    });
+    changeBuffer = { applications:0, schedules:0, watchlist_companies:0, watchlist_company_jobs:0 };
+    bufferTimer = null;
+  }, 500);
+}
+
+function subscribeRealtime(){
+  const uid = session.user.id;
+  const wsChip = $('#rtWs');
+  const setWs = (status)=>{
+    if(status === 'SUBSCRIBED'){ wsChip.className='rt-chip rt-ok'; wsChip.innerHTML = `<span class="rt-dot"></span>실시간 연결됨`; }
+    else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT'){ wsChip.className='rt-chip rt-err'; wsChip.innerHTML = `<span class="rt-dot"></span>연결 오류`; }
+    else if(status === 'CLOSED'){ wsChip.className='rt-chip rt-err'; wsChip.innerHTML = `<span class="rt-dot"></span>연결 종료됨`; }
+    else { wsChip.className='rt-chip rt-warn'; wsChip.innerHTML = `<span class="rt-dot"></span>${status}`; }
+  };
+
+  supabase.channel('applications-ch')
+    .on('postgres_changes', { event:'*', schema:'public', table:'applications', filter:`user_id=eq.${uid}` }, async ()=>{
+      const { data } = await supabase.from('applications').select('*').eq('user_id', uid).order('applied_date',{ascending:false});
+      state.applications = data || [];
+      renderStatCards(); renderFunnel(); renderAppTable();
+      queueChange('applications');
+    })
+    .subscribe(setWs);
+
+  supabase.channel('schedules-ch')
+    .on('postgres_changes', { event:'*', schema:'public', table:'schedules', filter:`user_id=eq.${uid}` }, async ()=>{
+      const { data } = await supabase.from('schedules').select('*').eq('user_id', uid).order('event_date',{ascending:true});
+      state.schedules = data || [];
+      renderSchedules(); renderHeader();
+      queueChange('schedules');
+    })
+    .subscribe();
+
+  supabase.channel('watchlist-companies-ch')
+    .on('postgres_changes', { event:'*', schema:'public', table:'watchlist_companies', filter:`user_id=eq.${uid}` }, async ()=>{
+      const { data } = await supabase.from('watchlist_companies').select('*').eq('user_id', uid).order('created_at',{ascending:false});
+      state.watchlistCompanies = data || [];
+      renderWatchlist();
+      queueChange('watchlist_companies');
+    })
+    .subscribe();
+
+  supabase.channel('watchlist-jobs-ch')
+    .on('postgres_changes', { event:'*', schema:'public', table:'watchlist_company_jobs' }, async (payload)=>{
+      const cid = payload.new?.watchlist_company_id || payload.old?.watchlist_company_id;
+      if(cid && state.watchlistJobs[cid]){
+        const { data } = await supabase.from('watchlist_company_jobs').select('*').eq('watchlist_company_id', cid).order('synced_at',{ascending:false});
+        state.watchlistJobs[cid] = data || [];
+        renderWatchJobsBox(cid);
+      }
+      const { data: log } = await supabase.from('sync_logs').select('*').eq('sync_type','watchlist_jobs').eq('status','success').order('ran_at',{ascending:false}).limit(1);
+      state.syncLogLatest = (log && log[0]) || state.syncLogLatest;
+      updateSyncIndicator();
+      queueChange('watchlist_company_jobs');
+    })
+    .subscribe();
+}
+</script>
+</body>
+</html>
