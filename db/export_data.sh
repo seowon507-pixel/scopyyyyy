@@ -9,13 +9,16 @@ set -e
 cd "$(dirname "$0")"
 DB=scopy.db
 OUT=../js/data.js
-python3 fetch_live_jobs.py > /tmp/scopy_live_jobs.json 2>/tmp/scopy_live_jobs.log || true
-if [ -s /tmp/scopy_live_jobs.json ]; then
-  LIVE_JOBS=$(cat /tmp/scopy_live_jobs.json)
+python3 fetch_live_jobs.py > /tmp/scopy_live.json 2>/tmp/scopy_live_jobs.log || true
+if [ -s /tmp/scopy_live.json ]; then
+  LIVE_JOBS=$(python3 -c "import json; print(json.dumps(json.load(open('/tmp/scopy_live.json'))['jobs'], ensure_ascii=False))")
+  LIVE_TOTALS=$(python3 -c "import json; print(json.dumps(json.load(open('/tmp/scopy_live.json'))['category_totals'], ensure_ascii=False))")
 else
   echo "경고: 실 공고 조회 실패 — liveJobs를 빈 배열로 둠 ($(cat /tmp/scopy_live_jobs.log 2>/dev/null | tail -1))" >&2
   LIVE_JOBS="[]"
+  LIVE_TOTALS="{}"
 fi
+FETCHED_AT=$(date +"%Y-%m-%d %H:%M")
 
 {
   echo "// generate_seed.py → scopy.db → export_data.sh 로 생성됨 — 직접 수정하지 말 것"
@@ -39,7 +42,9 @@ fi
     JOIN companies c ON c.id = j.company_id
     LEFT JOIN tags t ON t.id = j.category_tag_id
     ORDER BY j.created_at DESC;"),"
-  echo "  liveJobs: $LIVE_JOBS"
+  echo "  liveJobs: $LIVE_JOBS,"
+  echo "  liveCategoryTotals: $LIVE_TOTALS,"
+  echo "  liveFetchedAt: \"$FETCHED_AT\""
   echo "};"
 } > $OUT
 

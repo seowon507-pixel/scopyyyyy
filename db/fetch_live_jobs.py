@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-"""원티드 실 API에서 활성 공고를 가져와 liveJobs JSON을 출력한다.
+"""원티드 실 API에서 활성 공고 표본 + 직군별 전수 공고 수를 가져와 JSON을 출력한다.
 
-'공고 탐색·북마크·자소서 추천' 탭은 이 실 데이터를 쓴다.
-'시장 개요·기업 비교'는 계속 db/generate_seed.py 가상 데이터를 쓴다 —
-원티드 실 API에 신규 공고 등록일시(created_at)·기업 인사이트(평균연봉·퇴사율)가
-없거나(전자) 권한이 없어서(후자, /v1/insight/company 401) 실 데이터로 못 채움.
+'시장 개요·공고 탐색·북마크·자소서 추천' 탭은 이 실 데이터를 쓴다.
+'기업 비교'는 계속 db/generate_seed.py 가상 데이터를 쓴다 — 기업 인사이트
+(/v1/insight/company)가 401 권한 없음이라 실 지표를 못 가져온다.
 
-사용법: python3 fetch_live_jobs.py > live_jobs.json
+출력 형식: {"category_totals": {"518": {"title": "개발", "total": N}, ...},
+            "jobs": [...]}
+- category_totals: 직군별 실제 진행중 공고 총량 (offset 이진탐색으로 전수 집계)
+- jobs: 직군당 PER_CATEGORY건 상세 표본 (스킬·경력·매력태그·마감일 포함)
+
+사용법: python3 fetch_live_jobs.py > live.json
         (export_data.sh가 실행 시 자동으로 호출해 js/data.js에 병합함)
 """
 import json
@@ -19,8 +23,13 @@ import urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE = "https://openapi.wanted.jobs"
-CATEGORIES = {518: "개발", 517: "데이터", 511: "디자인", 507: "기획·PM", 523: "마케팅"}
-PER_CATEGORY = 40
+# /v1/tags/categories 실제 직군 ID (2026-07-13 확인)
+CATEGORIES = {
+    518: "개발", 507: "경영·비즈니스", 523: "마케팅·광고", 511: "디자인",
+    517: "HR", 530: "영업", 513: "엔지니어링·설계", 524: "미디어",
+}
+PER_CATEGORY = 25
+MAX_TOTAL = 20000  # 직군별 전수 집계 상한 (이진탐색 캡)
 
 
 def load_env():
@@ -56,6 +65,33 @@ def get(path, params=None):
 def won_to_int(s):
     digits = re.sub(r"[^0-9]", "", s or "")
     return int(digits) if digits else 0
+
+
+def has_job_at(cat_id, offset):
+    """offset 위치에 공고가 존재하는지 (전수 집계용 프로브)."""
+    try:
+        data = get("/v2/jobs", {"category_tag": cat_id, "limit": 1, "offset": offset})
+        return bool(data.get("data"))
+    except urllib.error.HTTPError:
+        return False
+
+
+def count_category_total(cat_id):
+    """직군의 진행중 공고 총량을 offset 이진탐색으로 구한다 (요청 ~15회)."""
+    if not has_job_at(cat_id, 0):
+        return 0
+    lo, hi = 1, 64
+    while hi < MAX_TOTAL and has_job_at(cat_id, hi):
+        lo, hi = hi, hi * 2
+    hi = min(hi, MAX_TOTAL)
+    # 불변식: offset lo-1 존재, offset hi 없음 → 총량 ∈ [lo, hi]
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if has_job_at(cat_id, mid):
+            lo = mid + 1
+        else:
+            hi = mid
+    return lo
 
 
 def fetch_stubs():
@@ -117,16 +153,27 @@ def build_job(stub, d):
 def main():
     if not HEADERS["wanted-client-id"] or not HEADERS["wanted-client-secret"]:
         print("[fetch_live_jobs] WANTED_CLIENT_ID/SECRET 없음 — .env 확인", file=sys.stderr)
-        print("[]")
+        print(json.dumps({"category_totals": {}, "jobs": []}))
         return
+
+    totals = {}
+    for cat_id, title in CATEGORIES.items():
+        try:
+            total = count_category_total(cat_id)
+        except urllib.error.URLError as e:
+            print(f"[fetch_live_jobs] {title} 전수 집계 실패: {e}", file=sys.stderr)
+            total = 0
+        totals[str(cat_id)] = {"title": title, "total": total}
+        print(f"[fetch_live_jobs] {title}: 진행중 공고 {total}건", file=sys.stderr)
+
     try:
         stubs = fetch_stubs()
     except urllib.error.URLError as e:
         print(f"[fetch_live_jobs] 목록 조회 실패: {e}", file=sys.stderr)
-        print("[]")
+        print(json.dumps({"category_totals": totals, "jobs": []}, ensure_ascii=False))
         return
 
-    print(f"[fetch_live_jobs] 활성 공고 후보 {len(stubs)}건 — 상세 조회 시작", file=sys.stderr)
+    print(f"[fetch_live_jobs] 상세 표본 후보 {len(stubs)}건 — 상세 조회 시작", file=sys.stderr)
     jobs, seen = [], set()
     for i, stub in enumerate(stubs):
         if stub["id"] in seen:
@@ -143,8 +190,8 @@ def main():
         if (i + 1) % 40 == 0:
             print(f"[fetch_live_jobs] {i + 1}/{len(stubs)}", file=sys.stderr)
 
-    print(f"[fetch_live_jobs] 완료 — 실 공고 {len(jobs)}건", file=sys.stderr)
-    print(json.dumps(jobs, ensure_ascii=False))
+    print(f"[fetch_live_jobs] 완료 — 실 공고 표본 {len(jobs)}건", file=sys.stderr)
+    print(json.dumps({"category_totals": totals, "jobs": jobs}, ensure_ascii=False))
 
 
 if __name__ == "__main__":

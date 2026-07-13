@@ -58,12 +58,6 @@
         <h1 class="page-title" id="pageTitle">시장 개요</h1>
         <p class="page-sub" id="pageSub">지금 채용 시장의 수요를 한눈에</p>
       </div>
-      <div class="filter-row" id="filterRow" role="group" aria-label="기간 필터">
-        <button class="range-btn" data-days="7">최근 7일</button>
-        <button class="range-btn" data-days="30">최근 30일</button>
-        <button class="range-btn is-active" data-days="90">최근 90일</button>
-        <button class="range-btn" data-days="0">전체</button>
-      </div>
     </header>
 
     <!-- 시장 개요 -->
@@ -73,44 +67,65 @@
         <div class="card">
           <div class="card-head">
             <div>
-              <h2 class="card-title">신규 공고 추이</h2>
-              <p class="card-sub" id="trendSub">주별 신규 등록 공고</p>
-            </div>
-            <button class="table-toggle" data-target="trend">표</button>
-          </div>
-          <div class="chart-body" id="chart-trend"></div>
-        </div>
-        <div class="card">
-          <div class="card-head">
-            <div>
-              <h2 class="card-title">직군별 공고</h2>
-              <p class="card-sub">기간 내 등록 공고 수</p>
+              <h2 class="card-title">직군별 진행중 공고</h2>
+              <p class="card-sub">원티드 전수 집계 — 8개 직군</p>
             </div>
             <button class="table-toggle" data-target="category">표</button>
           </div>
           <div class="chart-body" id="chart-category"></div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">스킬 수요 Top 10</h2>
+              <p class="card-sub">수집 표본 공고에 요구된 스킬 태그 빈도</p>
+            </div>
+            <button class="table-toggle" data-target="skills">표</button>
+          </div>
+          <div class="chart-body" id="chart-skills"></div>
         </div>
       </div>
       <div class="grid grid-2">
         <div class="card">
           <div class="card-head">
             <div>
-              <h2 class="card-title">스킬 수요 Top 10</h2>
-              <p class="card-sub">공고에 요구된 스킬 태그 빈도</p>
-            </div>
-            <button class="table-toggle" data-target="skills">표</button>
-          </div>
-          <div class="chart-body" id="chart-skills"></div>
-        </div>
-        <div class="card">
-          <div class="card-head">
-            <div>
               <h2 class="card-title">경력대별 공고</h2>
-              <p class="card-sub">최소 요구 경력 기준</p>
+              <p class="card-sub">최소 요구 경력 기준 (수집 표본)</p>
             </div>
             <button class="table-toggle" data-target="career">표</button>
           </div>
           <div class="chart-body" id="chart-career"></div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">지역별 공고</h2>
+              <p class="card-sub">근무지 기준 (수집 표본)</p>
+            </div>
+            <button class="table-toggle" data-target="location">표</button>
+          </div>
+          <div class="chart-body" id="chart-location"></div>
+        </div>
+      </div>
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">기업 매력태그 Top 10</h2>
+              <p class="card-sub">채용 중인 기업의 복지·문화·조직 특성 (기업 단위 집계)</p>
+            </div>
+            <button class="table-toggle" data-target="welfare">표</button>
+          </div>
+          <div class="chart-body" id="chart-welfare"></div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">마감 임박 공고</h2>
+              <p class="card-sub">마감일이 가까운 순 — 클릭하면 지원 페이지로 이동</p>
+            </div>
+          </div>
+          <div class="reco-list" id="dueSoonList"></div>
         </div>
       </div>
     </section>
