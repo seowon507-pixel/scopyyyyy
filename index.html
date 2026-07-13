@@ -32,6 +32,10 @@
         <svg viewBox="0 0 20 20"><path d="M5 3a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v15l-5-3.5L5 18z"/></svg>
         북마크
       </button>
+      <button class="nav-item" data-view="coverletters">
+        <svg viewBox="0 0 20 20"><path d="M4 2h8l4 4v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zm7 1.5V6h2.5L11 3.5zM6 10h8v1.2H6zm0 3h8v1.2H6zm0 3h5v1.2H6z"/></svg>
+        자소서 관리
+      </button>
     </nav>
     <div class="sidebar-foot">
       <button id="themeToggle" class="theme-toggle" aria-label="다크 모드 전환">
@@ -167,7 +171,7 @@
         <div class="card-head">
           <div>
             <h2 class="card-title">기업 인사이트</h2>
-            <p class="card-sub">Wanted 인사이트 API 기준 — 진행 중 공고 수 순</p>
+            <p class="card-sub">데모 지표 (가상 데이터) — 진행 중 공고 수 순. 원티드 인사이트 API는 별도 권한 필요</p>
           </div>
         </div>
         <div class="table-wrap" id="companiesTable"></div>
@@ -184,6 +188,44 @@
           </div>
         </div>
         <div class="job-grid" id="bookmarkGrid"></div>
+      </div>
+    </section>
+
+    <!-- 자소서 관리 -->
+    <section class="view" id="view-coverletters">
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="card-head card-head-stack">
+            <div>
+              <h2 class="card-title">자소서 작성</h2>
+              <p class="card-sub">저장하면 아래 목록에 추가되고, 내용에 맞는 기업을 추천합니다</p>
+            </div>
+            <button class="btn" id="clNewBtn">새 자소서</button>
+          </div>
+          <div class="cl-editor">
+            <input type="text" id="clTitle" class="search-input cl-title-input" placeholder="제목 (예: 백엔드 개발자 지원용)">
+            <textarea id="clContent" class="cl-textarea" placeholder="자소서 내용을 입력하세요. 스킬·직무·희망 근무 방식을 구체적으로 쓰면 추천이 정확해집니다."></textarea>
+            <button class="btn btn-primary" id="clSaveBtn">저장</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">저장한 자소서</h2>
+              <p class="card-sub" id="clCount"></p>
+            </div>
+          </div>
+          <div class="cl-list" id="clList"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">추천 기업</h2>
+            <p class="card-sub">자소서에 담긴 직군·스킬·복지 키워드와 채용 중인 기업을 매칭한 결과</p>
+          </div>
+        </div>
+        <div id="clRecommend"></div>
       </div>
     </section>
   </main>

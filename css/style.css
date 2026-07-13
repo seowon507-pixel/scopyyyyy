@@ -236,6 +236,19 @@ body {
 .table-toggle:hover { background: var(--surface-2); }
 .table-toggle.is-active { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
 
+.btn {
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink-2);
+  font: inherit; font-size: 13px; font-weight: 600;
+  cursor: pointer;
+}
+.btn:hover { background: var(--surface-2); }
+.btn.btn-primary { background: var(--accent); color: #fff; border-color: transparent; }
+.btn.btn-primary:hover { background: var(--accent); opacity: 0.9; }
+
 .chart-body { min-height: 200px; }
 .chart-body svg { display: block; width: 100%; height: auto; }
 .chart-body .legend {
@@ -370,6 +383,7 @@ tbody tr:hover td { background: var(--surface-2); }
   font-size: 11.5px; font-weight: 600;
 }
 .chip-skill { background: var(--accent-soft); color: var(--accent); }
+.chip-attraction { background: transparent; border: 1px solid var(--border); color: var(--ink-3); }
 .job-foot {
   display: flex; align-items: center; justify-content: space-between;
   margin-top: auto; padding-top: 6px;
@@ -380,6 +394,56 @@ tbody tr:hover td { background: var(--surface-2); }
 .job-dday { color: var(--ink-3); }
 .job-dday.urgent { color: var(--urgent); font-weight: 700; }
 .empty-note { color: var(--ink-3); padding: 24px 0; text-align: center; }
+
+/* ── 자소서 관리 ───────────────────────────── */
+.cl-editor { display: flex; flex-direction: column; gap: 10px; }
+.cl-title-input { width: 100%; }
+.cl-textarea {
+  width: 100%; min-height: 220px; resize: vertical;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit; font-size: 13px; line-height: 1.6;
+}
+.cl-textarea:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+.cl-editor #clSaveBtn { align-self: flex-start; }
+
+.cl-list { display: flex; flex-direction: column; gap: 6px; }
+.cl-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.cl-item:hover { background: var(--surface-2); }
+.cl-item.is-active { background: var(--accent-soft); border-color: transparent; }
+.cl-item.is-active .cl-item-title { color: var(--accent); }
+.cl-item-title { font-weight: 600; font-size: 13px; }
+.cl-item-date { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+.cl-item-del {
+  border: 0; background: transparent;
+  font-size: 16px; line-height: 1; color: var(--ink-3);
+  cursor: pointer; padding: 2px 6px; flex-shrink: 0;
+}
+.cl-item-del:hover { color: var(--urgent); }
+
+.reco-wrap { display: flex; flex-direction: column; gap: 14px; }
+.reco-summary { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.reco-list { display: flex; flex-direction: column; gap: 8px; }
+.reco-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  padding: 12px 14px;
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  color: inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+.reco-item:hover { background: var(--surface-2); border-color: var(--border); }
+.reco-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
 
 /* 차트 내부 텍스트 — 텍스트 토큰만 사용 */
 .axis-text { font-size: 11px; fill: var(--ink-3); }

@@ -58,6 +58,13 @@ CREATE TABLE job_tags (
     PRIMARY KEY (job_id, tag_id)
 );
 
+-- 기업-매력태그 매핑 (/v1/tags/attractions)
+CREATE TABLE company_tags (
+    company_id INTEGER NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
+    tag_id     INTEGER NOT NULL REFERENCES tags (id),
+    PRIMARY KEY (company_id, tag_id)
+);
+
 -- 관심 공고 (클라이언트는 localStorage, 서버 전환 대비 정의)
 CREATE TABLE bookmarks (
     job_id     INTEGER PRIMARY KEY REFERENCES jobs (id) ON DELETE CASCADE,
@@ -69,6 +76,7 @@ CREATE INDEX idx_jobs_status     ON jobs (status);
 CREATE INDEX idx_jobs_category   ON jobs (category_tag_id);
 CREATE INDEX idx_jobs_created_at ON jobs (created_at);
 CREATE INDEX idx_job_tags_tag    ON job_tags (tag_id);
+CREATE INDEX idx_company_tags_tag ON company_tags (tag_id);
 
 -- 직군별 공고 현황
 CREATE VIEW v_category_stats AS

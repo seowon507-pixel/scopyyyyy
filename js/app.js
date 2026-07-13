@@ -3,6 +3,10 @@
 
 (() => {
   const D = window.SCOPY_DATA;
+  // 시장 개요·기업 비교는 가상 데이터(D.jobs/D.companies, 시계열·인사이트 포함)를 계속 쓰고,
+  // 공고 탐색·북마크·자소서 추천은 원티드 실 API 데이터(LIVE)를 쓴다 — 실 API는 공고
+  // 등록일시·기업 인사이트를 안 주거나 권한이 없어 시장 개요/기업 비교까지는 못 옮김.
+  const LIVE = D.liveJobs || [];
   const $ = (sel) => document.querySelector(sel);
   const fmt = Charts.fmt;
 
@@ -17,6 +21,11 @@
   /* ── 북마크 (localStorage) ────────────────── */
   const bookmarks = new Set(JSON.parse(localStorage.getItem("scopy-bookmarks") || "[]"));
   const saveBookmarks = () => localStorage.setItem("scopy-bookmarks", JSON.stringify([...bookmarks]));
+
+  /* ── 자소서 (localStorage) ────────────────── */
+  const coverLetters = JSON.parse(localStorage.getItem("scopy-coverletters") || "[]");
+  const saveCoverLetters = () => localStorage.setItem("scopy-coverletters", JSON.stringify(coverLetters));
+  state.clSelectedId = null;
 
   /* ── 데이터 슬라이스 ─────────────────────── */
   function jobsInRange(days = state.rangeDays, offset = 0) {
@@ -140,8 +149,13 @@
 
   /* ── 공고 카드 ───────────────────────────── */
   function jobCard(j) {
-    const card = document.createElement("article");
+    const card = document.createElement("a");
     card.className = "job-card";
+    if (j.url) {
+      card.href = j.url;
+      card.target = "_blank";
+      card.rel = "noopener noreferrer";
+    }
 
     const top = document.createElement("div");
     top.className = "job-top";
@@ -156,7 +170,7 @@
     coName.textContent = j.company_name;
     const coSub = document.createElement("div");
     coSub.className = "job-company-sub";
-    coSub.textContent = `평균연봉 ${fmt(j.average_salary)}만원 · 퇴사율 ${j.left_rate}%`;
+    coSub.textContent = j.full_location || j.location || "";
     coText.append(coName, coSub);
     co.append(avatar, coText);
 
@@ -164,7 +178,9 @@
     bm.className = "bookmark-btn" + (bookmarks.has(j.id) ? " is-on" : "");
     bm.setAttribute("aria-label", "북마크");
     bm.textContent = bookmarks.has(j.id) ? "★" : "☆";
-    bm.addEventListener("click", () => {
+    bm.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       bookmarks.has(j.id) ? bookmarks.delete(j.id) : bookmarks.add(j.id);
       saveBookmarks();
       renderJobs();
@@ -191,6 +207,12 @@
       chip.textContent = s;
       chips.appendChild(chip);
     });
+    JSON.parse(j.attraction_titles || "[]").slice(0, 2).forEach((s) => {
+      const chip = document.createElement("span");
+      chip.className = "chip chip-attraction";
+      chip.textContent = s;
+      chips.appendChild(chip);
+    });
 
     const foot = document.createElement("div");
     foot.className = "job-foot";
@@ -207,9 +229,9 @@
     return card;
   }
 
-  /* ── 공고 탐색 ───────────────────────────── */
+  /* ── 공고 탐색 (원티드 실 API 데이터) ───────── */
   function renderJobs() {
-    let rows = D.jobs.filter((j) => j.status === "active");
+    let rows = LIVE.filter((j) => j.status === "active");
     if (state.category) rows = rows.filter((j) => String(j.category_tag_id) === state.category);
     if (state.career === "new") rows = rows.filter((j) => j.annual_from === 0);
     if (state.career === "junior") rows = rows.filter((j) => j.annual_from <= 3);
@@ -220,13 +242,14 @@
         j.name.toLowerCase().includes(q) || j.company_name.toLowerCase().includes(q) ||
         (j.skill_titles || "").toLowerCase().includes(q));
     }
-    if (state.sort === "latest") rows.sort((a, b) => b.created_at.localeCompare(a.created_at));
+    // 실 API는 공고 등록일시를 안 줘서 최신순은 공고 ID(클수록 최신) 기준으로 근사
+    if (state.sort === "latest") rows.sort((a, b) => b.id - a.id);
     if (state.sort === "reward") rows.sort((a, b) => b.reward_total - a.reward_total);
     if (state.sort === "due") rows.sort((a, b) => (a.due_time || "9999") .localeCompare(b.due_time || "9999"));
 
     const grid = $("#jobGrid");
     grid.replaceChildren(...rows.slice(0, 60).map(jobCard));
-    $("#jobCount").textContent = `진행 중 공고 ${fmt(rows.length)}건${rows.length > 60 ? " · 상위 60건 표시" : ""}`;
+    $("#jobCount").textContent = `원티드 실시간 데이터 · 진행 중 공고 ${fmt(rows.length)}건${rows.length > 60 ? " · 상위 60건 표시" : ""}`;
   }
 
   /* ── 기업 비교 ───────────────────────────── */
@@ -251,7 +274,7 @@
     const thead = document.createElement("thead");
     thead.innerHTML = "<tr><th>기업</th><th>산업</th><th class='num'>인원</th><th class='num'>평균연봉</th>" +
       "<th class='num'>신규입사자 연봉</th><th class='num'>입사율</th><th class='num'>퇴사율</th>" +
-      "<th class='num'>1인당 매출</th><th class='num'>진행중 공고</th></tr>";
+      "<th class='num'>1인당 매출</th><th class='num'>진행중 공고</th><th>복지·문화</th></tr>";
     const tbody = document.createElement("tbody");
     [...D.companies].sort((a, b) => b.active_jobs - a.active_jobs).forEach((c) => {
       const tr = document.createElement("tr");
@@ -277,6 +300,17 @@
         } else td.textContent = text;
         tr.appendChild(td);
       });
+      const tagsTd = document.createElement("td");
+      const chipRow = document.createElement("div");
+      chipRow.className = "chip-row";
+      JSON.parse(c.attraction_titles || "[]").slice(0, 3).forEach((s) => {
+        const chip = document.createElement("span");
+        chip.className = "chip chip-attraction";
+        chip.textContent = s;
+        chipRow.appendChild(chip);
+      });
+      tagsTd.appendChild(chipRow);
+      tr.appendChild(tagsTd);
       tbody.appendChild(tr);
     });
     table.append(thead, tbody);
@@ -285,7 +319,7 @@
 
   /* ── 북마크 ──────────────────────────────── */
   function renderBookmarks() {
-    const rows = D.jobs.filter((j) => bookmarks.has(j.id));
+    const rows = LIVE.filter((j) => bookmarks.has(j.id));
     const grid = $("#bookmarkGrid");
     if (!rows.length) {
       const empty = document.createElement("p");
@@ -298,12 +332,190 @@
     $("#bookmarkCount").textContent = `${fmt(rows.length)}건 저장됨`;
   }
 
+  /* ── 자소서 관리 · 기업 추천 (원티드 실 API 데이터) ── */
+  // 자소서 문구와 직군/스킬/복지 태그를 로컬 키워드 매칭 — 원티드 AI 서류합격예측 API는
+  // 별도 계약 전용(POST /ai/pass/text-prediction/async)이라 이 키로는 호출 불가.
+  // 추천 대상은 LIVE(실 공고)라 실제로 지원 가능한 기업만 뜬다.
+  const LIVE_KEYWORDS = new Set();
+  LIVE.forEach((j) => {
+    LIVE_KEYWORDS.add(j.category_title);
+    JSON.parse(j.subcategory_titles || "[]").forEach((t) => LIVE_KEYWORDS.add(t));
+    JSON.parse(j.skill_titles || "[]").forEach((t) => LIVE_KEYWORDS.add(t));
+    JSON.parse(j.attraction_titles || "[]").forEach((t) => LIVE_KEYWORDS.add(t));
+  });
+  const ALL_KEYWORDS = [...new Set([...D.tags.map((t) => t.title), ...LIVE_KEYWORDS])];
+  const ASCII_TOKEN = /^[A-Za-z0-9.+#]+$/;
+
+  function textHasKeyword(text, keyword) {
+    if (ASCII_TOKEN.test(keyword)) {
+      const esc = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return new RegExp(`\\b${esc}\\b`, "i").test(text);
+    }
+    return text.includes(keyword);
+  }
+
+  function companyKeywordSets() {
+    const map = {};
+    LIVE.filter((j) => j.status === "active").forEach((j) => {
+      const rec = map[j.company_id] || (map[j.company_id] = {
+        name: j.company_name, link: j.company_link, activeJobs: 0, keywords: new Set(),
+      });
+      rec.activeJobs++;
+      rec.keywords.add(j.category_title);
+      JSON.parse(j.subcategory_titles || "[]").forEach((t) => rec.keywords.add(t));
+      JSON.parse(j.skill_titles || "[]").forEach((t) => rec.keywords.add(t));
+      JSON.parse(j.attraction_titles || "[]").forEach((t) => rec.keywords.add(t));
+    });
+    return map;
+  }
+
+  function emptyNote(text) {
+    const p = document.createElement("p");
+    p.className = "empty-note";
+    p.textContent = text;
+    return p;
+  }
+
+  function renderRecommendations(text) {
+    const container = $("#clRecommend");
+    if (!text || !text.trim()) {
+      container.replaceChildren(emptyNote("자소서를 작성하면 맞는 기업을 추천합니다."));
+      return;
+    }
+    const matched = ALL_KEYWORDS.filter((k) => textHasKeyword(text, k));
+    if (!matched.length) {
+      container.replaceChildren(emptyNote("직군·스킬·복지 키워드를 찾지 못했습니다. 기술 스택이나 직무명, 원하는 근무 방식을 구체적으로 써보세요."));
+      return;
+    }
+    const sets = companyKeywordSets();
+    const scored = Object.values(sets)
+      .map((rec) => {
+        const hits = matched.filter((k) => rec.keywords.has(k));
+        return { rec, hits, score: hits.length };
+      })
+      .filter((x) => x.score > 0)
+      .sort((a, b) => b.score - a.score || b.rec.activeJobs - a.rec.activeJobs)
+      .slice(0, 6);
+
+    const wrap = document.createElement("div");
+    wrap.className = "reco-wrap";
+
+    const summary = document.createElement("div");
+    summary.className = "reco-summary";
+    summary.append("감지된 키워드");
+    const chipRow = document.createElement("span");
+    chipRow.className = "chip-row";
+    matched.slice(0, 14).forEach((k) => {
+      const chip = document.createElement("span");
+      chip.className = "chip chip-skill";
+      chip.textContent = k;
+      chipRow.appendChild(chip);
+    });
+    summary.appendChild(chipRow);
+    wrap.appendChild(summary);
+
+    if (!scored.length) {
+      wrap.appendChild(emptyNote("키워드는 찾았지만 지금 채용 중인 기업 중에는 일치하는 곳이 없습니다."));
+    } else {
+      const list = document.createElement("div");
+      list.className = "reco-list";
+      scored.forEach(({ rec, hits }) => {
+        const item = document.createElement("a");
+        item.className = "reco-item";
+        item.href = rec.link;
+        item.target = "_blank";
+        item.rel = "noopener noreferrer";
+
+        const left = document.createElement("div");
+        left.className = "reco-left";
+        const avatar = document.createElement("span");
+        avatar.className = "job-avatar";
+        avatar.textContent = rec.name.slice(0, 1);
+        const info = document.createElement("div");
+        const name = document.createElement("div");
+        name.className = "job-company-name";
+        name.textContent = rec.name;
+        const sub = document.createElement("div");
+        sub.className = "job-company-sub";
+        sub.textContent = `진행중 공고 ${fmt(rec.activeJobs)}건`;
+        info.append(name, sub);
+        left.append(avatar, info);
+
+        const hitChips = document.createElement("div");
+        hitChips.className = "chip-row";
+        hits.slice(0, 5).forEach((k) => {
+          const chip = document.createElement("span");
+          chip.className = "chip chip-skill";
+          chip.textContent = k;
+          hitChips.appendChild(chip);
+        });
+        item.append(left, hitChips);
+        list.appendChild(item);
+      });
+      wrap.appendChild(list);
+    }
+    container.replaceChildren(wrap);
+  }
+
+  function deleteCoverLetter(id) {
+    const idx = coverLetters.findIndex((c) => c.id === id);
+    if (idx > -1) coverLetters.splice(idx, 1);
+    saveCoverLetters();
+    if (state.clSelectedId === id) {
+      state.clSelectedId = null;
+      $("#clTitle").value = "";
+      $("#clContent").value = "";
+    }
+    renderCoverLetters();
+  }
+
+  function renderCoverLetters() {
+    const listEl = $("#clList");
+    if (!coverLetters.length) {
+      listEl.replaceChildren(emptyNote("저장한 자소서가 없습니다. 왼쪽에서 작성 후 저장하세요."));
+    } else {
+      const items = [...coverLetters].sort((a, b) => b.updatedAt - a.updatedAt).map((cl) => {
+        const item = document.createElement("div");
+        item.className = "cl-item" + (state.clSelectedId === cl.id ? " is-active" : "");
+        const main = document.createElement("div");
+        main.className = "cl-item-main";
+        const t = document.createElement("div");
+        t.className = "cl-item-title";
+        t.textContent = cl.title;
+        const d = document.createElement("div");
+        d.className = "cl-item-date";
+        d.textContent = new Date(cl.updatedAt).toLocaleDateString("ko-KR");
+        main.append(t, d);
+        const del = document.createElement("button");
+        del.className = "cl-item-del";
+        del.setAttribute("aria-label", "삭제");
+        del.textContent = "×";
+        del.addEventListener("click", (e) => {
+          e.stopPropagation();
+          deleteCoverLetter(cl.id);
+        });
+        item.addEventListener("click", () => {
+          state.clSelectedId = cl.id;
+          $("#clTitle").value = cl.title;
+          $("#clContent").value = cl.content;
+          renderCoverLetters();
+        });
+        item.append(main, del);
+        return item;
+      });
+      listEl.replaceChildren(...items);
+    }
+    $("#clCount").textContent = `${fmt(coverLetters.length)}건 저장됨`;
+    renderRecommendations($("#clContent").value);
+  }
+
   /* ── 오케스트레이션 ───────────────────────── */
   const VIEW_META = {
     overview: ["시장 개요", "지금 채용 시장의 수요를 한눈에"],
     jobs: ["공고 탐색", "조건에 맞는 포지션을 찾아보세요"],
     companies: ["기업 비교", "연봉·퇴사율·성장성으로 회사를 비교하세요"],
     bookmarks: ["북마크", "관심 공고 모아보기"],
+    coverletters: ["자소서 관리", "자소서를 저장하고 맞는 기업을 추천받으세요"],
   };
 
   function render() {
@@ -312,6 +524,7 @@
     renderJobs();
     renderCompanies();
     renderBookmarks();
+    renderCoverLetters();
   }
 
   document.querySelectorAll(".nav-item").forEach((btn) => {
@@ -351,6 +564,29 @@
   $("#careerFilter").addEventListener("change", (e) => { state.career = e.target.value; renderJobs(); });
   $("#sortOrder").addEventListener("change", (e) => { state.sort = e.target.value; renderJobs(); });
 
+  $("#clNewBtn").addEventListener("click", () => {
+    state.clSelectedId = null;
+    $("#clTitle").value = "";
+    $("#clContent").value = "";
+    renderCoverLetters();
+  });
+  $("#clSaveBtn").addEventListener("click", () => {
+    const content = $("#clContent").value;
+    if (!content.trim()) return;
+    const title = $("#clTitle").value.trim() || "제목 없음";
+    if (state.clSelectedId) {
+      const item = coverLetters.find((c) => c.id === state.clSelectedId);
+      if (item) { item.title = title; item.content = content; item.updatedAt = Date.now(); }
+    } else {
+      const id = Date.now();
+      coverLetters.unshift({ id, title, content, updatedAt: id });
+      state.clSelectedId = id;
+    }
+    saveCoverLetters();
+    renderCoverLetters();
+  });
+  $("#clContent").addEventListener("input", (e) => renderRecommendations(e.target.value));
+
   // 다크 모드
   const savedTheme = localStorage.getItem("scopy-theme");
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -366,11 +602,18 @@
   });
 
   /* ── 초기화 ──────────────────────────────── */
+  // 공고 탐색은 LIVE(실 API) 데이터를 필터링하므로, 드롭다운도 실 카테고리 타이틀을 써야
+  // 정합성이 맞다 — 가상 데이터(D.tags)는 태그 ID 517/507에 원티드 실 분류와 다른
+  // 이름("데이터"/"기획·PM")을 붙여놔서 그대로 쓰면 라벨이 실제 결과와 어긋난다.
   const catFilter = $("#categoryFilter");
-  D.tags.filter((t) => t.tag_type === "category").forEach((t) => {
+  const liveCategories = new Map();
+  LIVE.forEach((j) => {
+    if (!liveCategories.has(j.category_tag_id)) liveCategories.set(j.category_tag_id, j.category_title);
+  });
+  [...liveCategories.entries()].sort((a, b) => a[1].localeCompare(b[1])).forEach(([id, title]) => {
     const opt = document.createElement("option");
-    opt.value = t.id;
-    opt.textContent = t.title;
+    opt.value = id;
+    opt.textContent = title;
     catFilter.appendChild(opt);
   });
   render();
