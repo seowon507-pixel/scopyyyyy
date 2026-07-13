@@ -126,11 +126,13 @@ def build_job(stub, d):
     attractions = [t["title"] for t in company.get("company_tags", [])]
     reward = d.get("reward") or {}
     address = d.get("address") or {}
+    logo = company.get("logo_img") or {}
     return {
         "id": d["id"],
         "company_id": company["id"],
         "company_name": company["name"],
         "company_link": company.get("link") or f"https://www.wanted.co.kr/company/{company['id']}",
+        "company_logo": logo.get("thumb") or logo.get("origin"),
         "name": d["detail"]["name"],
         "status": d["status"],
         "category_tag_id": cat["id"],

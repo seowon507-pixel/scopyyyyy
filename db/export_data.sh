@@ -10,15 +10,26 @@ cd "$(dirname "$0")"
 DB=scopy.db
 OUT=../js/data.js
 python3 fetch_live_jobs.py > /tmp/scopy_live.json 2>/tmp/scopy_live_jobs.log || true
+JOB_COUNT=0
 if [ -s /tmp/scopy_live.json ]; then
+  JOB_COUNT=$(python3 -c "import json; print(len(json.load(open('/tmp/scopy_live.json'))['jobs']))" 2>/dev/null || echo 0)
+fi
+if [ "$JOB_COUNT" -gt 0 ]; then
   LIVE_JOBS=$(python3 -c "import json; print(json.dumps(json.load(open('/tmp/scopy_live.json'))['jobs'], ensure_ascii=False))")
   LIVE_TOTALS=$(python3 -c "import json; print(json.dumps(json.load(open('/tmp/scopy_live.json'))['category_totals'], ensure_ascii=False))")
+  FETCHED_AT=$(date +"%Y-%m-%d %H:%M")
+elif [ -f "$OUT" ] && node -e "eval(require('fs').readFileSync('$OUT','utf8')); if(!window.SCOPY_DATA.liveJobs || !window.SCOPY_DATA.liveJobs.length) process.exit(1)" 2>/dev/null; then
+  echo "경고: 실 공고 조회 실패 — 직전 $OUT의 liveJobs를 그대로 유지함 ($(cat /tmp/scopy_live_jobs.log 2>/dev/null | tail -1))" >&2
+  LIVE_JOBS=$(node -e "eval(require('fs').readFileSync('$OUT','utf8')); console.log(JSON.stringify(window.SCOPY_DATA.liveJobs))")
+  LIVE_TOTALS=$(node -e "eval(require('fs').readFileSync('$OUT','utf8')); console.log(JSON.stringify(window.SCOPY_DATA.liveCategoryTotals || {}))")
+  FETCHED_AT=$(node -e "eval(require('fs').readFileSync('$OUT','utf8')); console.log(window.SCOPY_DATA.liveFetchedAt || '-')")
+  FETCHED_AT="$FETCHED_AT (갱신 실패, 이전 값 유지)"
 else
-  echo "경고: 실 공고 조회 실패 — liveJobs를 빈 배열로 둠 ($(cat /tmp/scopy_live_jobs.log 2>/dev/null | tail -1))" >&2
+  echo "경고: 실 공고 조회 실패 & 이전 데이터 없음 — liveJobs를 빈 배열로 둠 ($(cat /tmp/scopy_live_jobs.log 2>/dev/null | tail -1))" >&2
   LIVE_JOBS="[]"
   LIVE_TOTALS="{}"
+  FETCHED_AT="조회 실패"
 fi
-FETCHED_AT=$(date +"%Y-%m-%d %H:%M")
 
 {
   echo "// generate_seed.py → scopy.db → export_data.sh 로 생성됨 — 직접 수정하지 말 것"

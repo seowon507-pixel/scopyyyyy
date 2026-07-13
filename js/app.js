@@ -26,6 +26,17 @@
   const saveCoverLetters = () => localStorage.setItem("scopy-coverletters", JSON.stringify(coverLetters));
   state.clSelectedId = null;
 
+  /* ── 최근 방문 공고 (localStorage) ─────────── */
+  const recentViews = JSON.parse(localStorage.getItem("scopy-recent-views") || "[]"); // [{id, viewedAt}]
+  function recordView(id) {
+    const idx = recentViews.findIndex((v) => v.id === id);
+    if (idx > -1) recentViews.splice(idx, 1);
+    recentViews.unshift({ id, viewedAt: Date.now() });
+    if (recentViews.length > 12) recentViews.length = 12;
+    localStorage.setItem("scopy-recent-views", JSON.stringify(recentViews));
+    renderRecentViews();
+  }
+
   const careerLabel = (j) =>
     j.annual_from === 0 && j.annual_to <= 1 ? "신입" :
     j.annual_from === 0 ? `신입–${j.annual_to}년` : `${j.annual_from}–${j.annual_to}년`;
@@ -126,6 +137,52 @@
     }
   }
 
+  /* ── 회사 로고 아바타 (원티드 실 API 이미지, 실패 시 이니셜로 대체) ── */
+  function letterAvatar(j) {
+    const avatar = document.createElement("span");
+    avatar.className = "job-avatar";
+    avatar.textContent = j.company_name.slice(0, 1);
+    return avatar;
+  }
+  function companyAvatar(j) {
+    if (!j.company_logo) return letterAvatar(j);
+    const img = document.createElement("img");
+    img.className = "job-avatar job-avatar-img";
+    img.src = j.company_logo;
+    img.alt = j.company_name;
+    img.loading = "lazy";
+    img.addEventListener("error", () => img.replaceWith(letterAvatar(j)), { once: true });
+    return img;
+  }
+
+  /* ── 공고 리스트 항목 (마감 임박 · 최근 방문 공용) ─────────── */
+  function jobRecoItem(j, rightText, urgent) {
+    const item = document.createElement("a");
+    item.className = "reco-item";
+    item.href = j.url;
+    item.target = "_blank";
+    item.rel = "noopener noreferrer";
+    item.addEventListener("click", () => recordView(j.id));
+
+    const left = document.createElement("div");
+    left.className = "reco-left";
+    const info = document.createElement("div");
+    const name = document.createElement("div");
+    name.className = "job-company-name";
+    name.textContent = j.name;
+    const sub = document.createElement("div");
+    sub.className = "job-company-sub";
+    sub.textContent = `${j.company_name} · ${j.category_title}`;
+    info.append(name, sub);
+    left.append(companyAvatar(j), info);
+
+    const right = document.createElement("span");
+    right.className = "job-dday" + (urgent ? " urgent" : "");
+    right.textContent = rightText;
+    item.append(left, right);
+    return item;
+  }
+
   function renderDueSoon() {
     const rows = LIVE.filter((j) => j.status === "active" && j.due_time && new Date(j.due_time) >= NOW)
       .sort((a, b) => a.due_time.localeCompare(b.due_time))
@@ -136,34 +193,21 @@
       return;
     }
     list.replaceChildren(...rows.map((j) => {
-      const item = document.createElement("a");
-      item.className = "reco-item";
-      item.href = j.url;
-      item.target = "_blank";
-      item.rel = "noopener noreferrer";
-
-      const left = document.createElement("div");
-      left.className = "reco-left";
-      const avatar = document.createElement("span");
-      avatar.className = "job-avatar";
-      avatar.textContent = j.company_name.slice(0, 1);
-      const info = document.createElement("div");
-      const name = document.createElement("div");
-      name.className = "job-company-name";
-      name.textContent = j.name;
-      const sub = document.createElement("div");
-      sub.className = "job-company-sub";
-      sub.textContent = `${j.company_name} · ${j.category_title}`;
-      info.append(name, sub);
-      left.append(avatar, info);
-
       const dd = dday(j);
-      const right = document.createElement("span");
-      right.className = "job-dday" + (dd.urgent ? " urgent" : "");
-      right.textContent = `${j.due_time} · ${dd.text}`;
-      item.append(left, right);
-      return item;
+      return jobRecoItem(j, `${j.due_time} · ${dd.text}`, dd.urgent);
     }));
+  }
+
+  /* ── 최근 방문 공고 ───────────────────────── */
+  function renderRecentViews() {
+    const list = $("#recentViewsList");
+    if (!list) return;
+    const rows = recentViews.map((v) => LIVE.find((j) => j.id === v.id)).filter(Boolean).slice(0, 8);
+    if (!rows.length) {
+      list.replaceChildren(emptyNote("아직 방문한 공고가 없습니다. 공고 카드를 클릭하면 여기에 쌓여요."));
+      return;
+    }
+    list.replaceChildren(...rows.map((j) => jobRecoItem(j, j.location || "")));
   }
 
   /* ── 공고 카드 ───────────────────────────── */
@@ -174,15 +218,16 @@
       card.href = j.url;
       card.target = "_blank";
       card.rel = "noopener noreferrer";
+      card.addEventListener("click", (e) => {
+        if (e.target.closest(".bookmark-btn")) return;
+        recordView(j.id);
+      });
     }
 
     const top = document.createElement("div");
     top.className = "job-top";
     const co = document.createElement("div");
     co.className = "job-company";
-    const avatar = document.createElement("span");
-    avatar.className = "job-avatar";
-    avatar.textContent = j.company_name.slice(0, 1);
     const coText = document.createElement("div");
     const coName = document.createElement("div");
     coName.className = "job-company-name";
@@ -191,7 +236,7 @@
     coSub.className = "job-company-sub";
     coSub.textContent = j.full_location || j.location || "";
     coText.append(coName, coSub);
-    co.append(avatar, coText);
+    co.append(companyAvatar(j), coText);
 
     const bm = document.createElement("button");
     bm.className = "bookmark-btn" + (bookmarks.has(j.id) ? " is-on" : "");
@@ -377,7 +422,7 @@
     const map = {};
     LIVE.filter((j) => j.status === "active").forEach((j) => {
       const rec = map[j.company_id] || (map[j.company_id] = {
-        name: j.company_name, link: j.company_link, activeJobs: 0, keywords: new Set(),
+        name: j.company_name, link: j.company_link, logo: j.company_logo, activeJobs: 0, keywords: new Set(),
       });
       rec.activeJobs++;
       rec.keywords.add(j.category_title);
@@ -447,9 +492,6 @@
 
         const left = document.createElement("div");
         left.className = "reco-left";
-        const avatar = document.createElement("span");
-        avatar.className = "job-avatar";
-        avatar.textContent = rec.name.slice(0, 1);
         const info = document.createElement("div");
         const name = document.createElement("div");
         name.className = "job-company-name";
@@ -458,7 +500,7 @@
         sub.className = "job-company-sub";
         sub.textContent = `진행중 공고 ${fmt(rec.activeJobs)}건`;
         info.append(name, sub);
-        left.append(avatar, info);
+        left.append(companyAvatar({ company_name: rec.name, company_logo: rec.logo }), info);
 
         const hitChips = document.createElement("div");
         hitChips.className = "chip-row";
@@ -541,6 +583,7 @@
     renderKpis();
     renderCharts();
     renderDueSoon();
+    renderRecentViews();
     renderJobs();
     renderCompanies();
     renderBookmarks();
