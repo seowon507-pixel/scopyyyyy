@@ -190,7 +190,11 @@ const Charts = (() => {
 
   function barChartH(container, { items, color, unit = "건", onClick }) {
     container.replaceChildren();
-    const rowH = 34, barH = 18, padL = 8, padR = 52, labelW = 150;
+    const rowH = 36, barH = 20, padL = 0, padR = 48;
+    const displayLabels = items.map((item) => item.label.length > 13 ? item.label.slice(0, 12) + "…" : item.label);
+    const estimatedTextWidth = (text) => [...text].reduce((width, char) => width + (/^[\x20-\x7E]$/.test(char) ? 7 : 12), 0);
+    const longestLabelWidth = Math.max(0, ...displayLabels.map(estimatedTextWidth));
+    const labelW = Math.min(178, Math.max(78, longestLabelWidth + 6));
     const W = 560, H = items.length * rowH + 8;
     const maxV = Math.max(...items.map((d) => d.value), 1);
     const plotW = W - padL - labelW - padR;
@@ -200,8 +204,8 @@ const Charts = (() => {
       const barColor = color || CATEGORICAL_PALETTE[i % CATEGORICAL_PALETTE.length];
       const y = 4 + i * rowH;
       const w = Math.max(2, (d.value / maxV) * plotW);
-      const name = svgEl("text", { x: padL + labelW - 12, y: y + barH / 2 + 4, "text-anchor": "end", class: "mark-label" });
-      name.textContent = d.label.length > 13 ? d.label.slice(0, 12) + "…" : d.label;
+      const name = svgEl("text", { x: padL, y: y + barH / 2 + 4, "text-anchor": "start", class: "mark-label" });
+      name.textContent = displayLabels[i];
       svg.appendChild(name);
 
       const bar = svgEl("path", { d: hBarPath(padL + labelW, y, w, barH), fill: barColor });

@@ -10,6 +10,7 @@
 # scopy.db/generate_seed.py는 리포에 남아있지만 이 스크립트는 더 이상 참조하지 않는다.
 set -e
 cd "$(dirname "$0")"
+python3 export_certifications.py
 OUT=../js/data.js
 python3 fetch_live_jobs.py > /tmp/scopy_live.json 2>/tmp/scopy_live_jobs.log || true
 JOB_COUNT=0

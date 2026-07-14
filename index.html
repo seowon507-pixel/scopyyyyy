@@ -64,9 +64,24 @@
 
   <main class="main">
     <header class="topbar">
-      <div>
+      <div class="page-heading">
         <h1 class="page-title" id="pageTitle">시장 개요</h1>
         <p class="page-sub" id="pageSub">지금 채용 시장의 수요를 한눈에</p>
+      </div>
+      <div class="pref-inline" id="mypagePrefCompact" aria-label="선호 직무 순위" hidden>
+        <span class="pref-inline-label">선호 직무</span>
+        <div class="pref-inline-buttons">
+          <button type="button" class="pref-rank-dot rank-1" id="prefRankButton1" aria-label="1순위 선호 직무 선택">1순위 · 선택 안 함</button>
+          <button type="button" class="pref-rank-dot rank-2" id="prefRankButton2" aria-label="2순위 선호 직무 선택">2순위 · 선택 안 함</button>
+          <button type="button" class="pref-rank-dot rank-3" id="prefRankButton3" aria-label="3순위 선호 직무 선택">3순위 · 선택 안 함</button>
+        </div>
+        <div class="pref-compact-menu" id="prefCompactMenu" hidden>
+          <div class="pref-compact-menu-head"><strong id="prefCompactMenuTitle">1순위 직무 선택</strong><button type="button" id="prefCompactMenuClose" aria-label="닫기">×</button></div>
+          <div class="pref-compact-options" id="prefCompactOptions"></div>
+        </div>
+        <select id="prefCategory1" hidden><option value="">선택 안 함</option></select>
+        <select id="prefCategory2" hidden><option value="">선택 안 함</option></select>
+        <select id="prefCategory3" hidden><option value="">선택 안 함</option></select>
       </div>
     </header>
 
@@ -164,6 +179,14 @@
             </select>
           </div>
         </div>
+        <div class="job-ai-recommend">
+          <div>
+            <strong>AI 맞춤 회사·공고 추천</strong>
+            <p>선호 직군·자격증·대외활동·자소서 정보를 종합해 잘 맞는 회사와 채용공고를 찾습니다.</p>
+          </div>
+          <button class="btn btn-primary" id="aiJobRecommendBtn">맞춤 추천받기</button>
+        </div>
+        <div class="job-ai-results" id="aiJobRecommendations" hidden></div>
         <div class="job-grid" id="jobGrid"></div>
       </div>
     </section>
@@ -218,63 +241,66 @@
 
     <!-- 마이페이지 -->
     <section class="view" id="view-mypage">
-      <div class="grid grid-2">
-        <div class="card">
+      <div class="grid grid-2 profile-pair-grid">
+        <div class="card cert-card">
           <div class="card-head">
             <div>
               <h2 class="card-title">자격증·수상</h2>
-              <p class="card-sub">보유한 자격증이나 수상 내역을 등록해두세요 (이미지·PDF 첨부 가능, 이 브라우저에만 저장)</p>
+              <p class="card-sub">공식 자격 목록에서 검색하거나 직접 입력하세요. 저장 내용과 첨부파일은 이 브라우저에만 보관됩니다.</p>
             </div>
           </div>
           <div class="cert-form">
-            <input type="text" id="certName" class="search-input" placeholder="자격증·수상명 (예: 정보처리기사)">
+            <div class="cert-combobox">
+              <input type="search" id="certName" class="search-input" placeholder="자격증 검색 (예: 정보처리기사)"
+                role="combobox" aria-autocomplete="list" aria-controls="certSearchResults" aria-expanded="false" autocomplete="off">
+              <div class="cert-search-results" id="certSearchResults" role="listbox" hidden></div>
+            </div>
             <input type="text" id="certIssuer" class="search-input" placeholder="발급기관">
-            <input type="month" id="certDate" class="search-input">
+            <label class="form-date-field"><span>취득일</span><input type="date" id="certDate" class="search-input"></label>
             <input type="file" id="certFile" class="search-input cert-file-picker" accept="image/*,.pdf">
             <button class="btn btn-primary" id="certAddBtn">추가</button>
           </div>
+          <div class="cert-selected-info" id="certSelectedInfo" hidden></div>
+          <div class="cert-source-note">
+            <span id="certCatalogMeta">자격 데이터 불러오는 중</span>
+            <a href="https://www.data.go.kr/data/3038404/fileData.do" target="_blank" rel="noopener noreferrer">공공데이터 출처 ↗</a>
+          </div>
           <div class="cl-list" id="certList"></div>
         </div>
-        <div class="card">
+        <div class="card activity-card">
           <div class="card-head">
             <div>
-              <h2 class="card-title">선호 직군</h2>
-              <p class="card-sub">선택하면 공고 탐색의 직군 필터에 기본 적용됩니다</p>
+              <h2 class="card-title">외부활동</h2>
+              <p class="card-sub">인턴·프로젝트·공모전·교육 등 직무 역량을 보여주는 활동을 등록하세요.</p>
             </div>
           </div>
-          <select id="prefCategory" class="select pref-select">
-            <option value="">선택 안 함</option>
-          </select>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-head">
-          <div>
-            <h2 class="card-title">활동</h2>
-            <p class="card-sub">프로젝트·동아리·인턴 등 활동 이력을 등록해두세요 (이 브라우저에만 저장)</p>
+          <div class="activity-form">
+            <select id="activityType" class="select">
+              <option value="프로젝트">프로젝트</option><option value="인턴">인턴</option><option value="공모전">공모전</option>
+              <option value="대외활동">대외활동</option><option value="교육">교육</option><option value="봉사">봉사</option>
+            </select>
+            <input type="text" id="activityTitle" class="search-input" placeholder="활동명">
+            <input type="text" id="activityOrg" class="search-input" placeholder="기관·주최사">
+            <label class="form-date-field"><span>활동일</span><input type="date" id="activityDate" class="search-input"></label>
+            <button class="btn btn-primary" id="activityAddBtn">추가</button>
           </div>
+          <div class="cl-list" id="activityList"></div>
         </div>
-        <div class="cert-form">
-          <input type="text" id="actTitle" class="search-input" placeholder="활동명 (예: 사이드 프로젝트 OO)">
-          <input type="text" id="actPeriod" class="search-input" placeholder="기간 (예: 2025.03 - 2025.06)">
-        </div>
-        <textarea id="actDesc" class="cl-textarea act-textarea" placeholder="역할·성과 등 활동 내용을 간단히 적어주세요"></textarea>
-        <button class="btn btn-primary" id="actAddBtn">추가</button>
-        <div class="cl-list act-list" id="actList"></div>
       </div>
       <div class="grid grid-2">
         <div class="card">
           <div class="card-head card-head-stack">
             <div>
-              <h2 class="card-title">자소서 작성</h2>
-              <p class="card-sub">저장하면 아래 목록에 추가되고, 내용에 맞는 기업을 추천합니다</p>
+              <h2 class="card-title">자소서 파일 등록</h2>
+              <p class="card-sub">작성하지 않고 기존 자소서 파일을 올려 보관하고 내려받을 수 있습니다.</p>
             </div>
             <button class="btn" id="clNewBtn">새 자소서</button>
           </div>
           <div class="cl-editor">
-            <input type="text" id="clTitle" class="search-input cl-title-input" placeholder="제목 (예: 백엔드 개발자 지원용)">
-            <textarea id="clContent" class="cl-textarea" placeholder="자소서 내용을 입력하세요. 스킬·직무·희망 근무 방식을 구체적으로 쓰면 추천이 정확해집니다."></textarea>
-            <button class="btn btn-primary" id="clSaveBtn">저장</button>
+            <input type="text" id="clTitle" class="search-input cl-title-input" placeholder="관리용 제목 (선택)">
+            <input type="file" id="clFile" class="search-input cl-file-input" accept=".txt,text/plain">
+            <p class="upload-help">TXT 파일만 등록할 수 있습니다. 최대 2MB · 본문은 회사·공고 추천과 자동 이력서에 반영됩니다.</p>
+            <button class="btn btn-primary" id="clSaveBtn">파일 등록</button>
           </div>
         </div>
         <div class="card">
@@ -286,6 +312,15 @@
           </div>
           <div class="cl-list" id="clList"></div>
         </div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">직군별 준비도</h2>
+            <p class="card-sub">선호 직군별 대표 자격증과 구체적인 프로젝트·공모전·대외활동 예시를 확인하세요. 실제 합격자 개인정보나 합격 보장 지표는 아닙니다.</p>
+          </div>
+        </div>
+        <div class="benchmark-grid" id="benchmarkResults"></div>
       </div>
       <div class="card">
         <div class="card-head">
@@ -305,19 +340,27 @@
         </div>
         <div class="reco-list" id="recentViewsList"></div>
       </div>
-      <div class="card">
-        <div class="card-head">
+      <div class="card resume-builder-card">
+        <div class="card-head card-head-stack">
           <div>
-            <h2 class="card-title">이력서 다운로드</h2>
-            <p class="card-sub">희망 직무·자격증·수상·활동·자소서를 IT 이력서 양식으로 모아 .docx로 내려받습니다 (원티드 API에는 이력서 양식이 없어 자체 양식으로 구성 — 브라우저에서 직접 생성, 서버 업로드 없음)</p>
+            <h2 class="card-title">자동 이력서 만들기</h2>
+            <p class="card-sub">직무별 양식에 저장한 자소서·자격증·외부활동을 자동으로 넣고, 미리본 뒤 DOCX로 내려받습니다.</p>
           </div>
+          <button class="btn btn-primary" id="resumeDownloadBtn">현재 이력서 DOCX 다운로드</button>
         </div>
-        <div class="resume-form">
-          <input type="text" id="resumeName" class="search-input" placeholder="이름">
-          <input type="text" id="resumeEmail" class="search-input" placeholder="이메일">
-          <input type="text" id="resumePhone" class="search-input" placeholder="연락처">
+        <div class="resume-builder-layout">
+          <div class="resume-builder-controls">
+            <label><span>이력서 양식 선택</span><select id="resumeTemplate" class="select"></select></label>
+            <label><span>사용할 자소서</span><select id="resumeCoverLetter" class="select"><option value="">자소서 선택</option></select></label>
+            <fieldset class="resume-choice-field"><legend>자격증·수상 선택</legend><div class="resume-choice-list" id="resumeCertChoices"></div></fieldset>
+            <fieldset class="resume-choice-field"><legend>대외활동 선택</legend><div class="resume-choice-list" id="resumeActivityChoices"></div></fieldset>
+            <label><span>이름</span><input type="text" id="resumeName" class="search-input" placeholder="예: 홍길동"></label>
+            <label><span>이메일</span><input type="email" id="resumeEmail" class="search-input" placeholder="예: name@example.com"></label>
+            <label><span>연락처</span><input type="tel" id="resumePhone" class="search-input" placeholder="예: 010-0000-0000"></label>
+            <p class="resume-builder-note">체크한 항목만 미리보기와 내려받는 이력서에 반영됩니다.</p>
+          </div>
+          <div class="resume-preview" id="resumePreview" aria-live="polite"></div>
         </div>
-        <button class="btn btn-primary" id="resumeDownloadBtn">이력서 다운로드 (.docx)</button>
       </div>
     </section>
   </main>
@@ -330,9 +373,28 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="certModalOverlay" hidden>
+  <div class="modal cert-modal" role="dialog" aria-modal="true" aria-labelledby="certModalTitle">
+    <button class="modal-close" id="certModalClose" aria-label="닫기">×</button>
+    <h2 class="job-modal-title" id="certModalTitle">보유 자격증 전체</h2>
+    <p class="card-sub" id="certModalCount"></p>
+    <div class="cl-list cert-modal-list" id="certModalList"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="activityModalOverlay" hidden>
+  <div class="modal cert-modal" role="dialog" aria-modal="true" aria-labelledby="activityModalTitle">
+    <button class="modal-close" id="activityModalClose" aria-label="닫기">×</button>
+    <h2 class="job-modal-title" id="activityModalTitle">외부활동 전체</h2>
+    <p class="card-sub" id="activityModalCount"></p>
+    <div class="cl-list cert-modal-list" id="activityModalList"></div>
+  </div>
+</div>
+
 <div class="chart-tooltip" id="tooltip" role="status" aria-live="polite" hidden></div>
 
 <script src="js/data.js"></script>
+<script src="js/certifications.js"></script>
 <script src="js/charts.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/docx@9.7.1/dist/index.iife.min.js"></script>
 <script src="js/app.js"></script>
