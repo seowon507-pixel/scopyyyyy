@@ -362,6 +362,7 @@ tbody tr.tr-radar-b td:first-child { border-left: 3px solid var(--c-docpass); }
   border: 1px solid var(--border-soft);
   border-radius: 14px;
   background: var(--surface);
+  cursor: pointer;
   transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
 }
 .job-card:hover {
@@ -469,3 +470,70 @@ tbody tr.tr-radar-b td:first-child { border-left: 3px solid var(--c-docpass); }
 .axis-text { font-size: 11px; fill: var(--ink-3); }
 .mark-label { font-size: 11px; font-weight: 600; fill: var(--ink-2); }
 .mark-label.strong { fill: var(--ink); }
+
+/* ── 공고 상세 모달 ────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(11, 11, 11, 0.5);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  z-index: 100;
+}
+.modal-overlay[hidden] { display: none; }
+[data-theme="dark"] .modal-overlay { background: rgba(0, 0, 0, 0.65); }
+
+.modal {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  width: 100%; max-width: 720px;
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 28px;
+}
+.modal-close {
+  position: absolute; top: 16px; right: 16px;
+  width: 30px; height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 18px; line-height: 1;
+  cursor: pointer;
+  display: grid; place-items: center;
+}
+.modal-close:hover { background: var(--surface-2); color: var(--ink); }
+
+.job-modal-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 18px; padding-right: 36px; }
+.job-modal-header .job-avatar { width: 44px; height: 44px; border-radius: 12px; font-size: 17px; flex-shrink: 0; }
+.job-modal-title { font-size: 19px; font-weight: 800; letter-spacing: -0.01em; margin-bottom: 3px; }
+.job-modal-company { font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.job-modal-sub { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+
+.job-modal-section { margin-bottom: 20px; }
+.job-modal-section:last-child { margin-bottom: 0; }
+.job-modal-section-title {
+  font-size: 11px; font-weight: 700; color: var(--ink-3);
+  text-transform: uppercase; letter-spacing: 0.05em;
+  margin-bottom: 10px;
+}
+
+.job-modal-meta { display: flex; flex-wrap: wrap; gap: 12px 22px; margin-bottom: 12px; }
+.job-modal-meta-item { display: flex; flex-direction: column; gap: 2px; }
+.job-modal-meta-label { font-size: 11px; color: var(--ink-3); }
+.job-modal-meta-value { font-size: 13px; font-weight: 700; }
+.job-modal-meta-value.urgent { color: var(--urgent); }
+
+.job-modal-company-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+}
+.job-modal-company-card .job-avatar { width: 38px; height: 38px; }
+.job-modal-company-link { font-size: 12px; color: var(--accent); }
+.job-modal-company-link:hover { text-decoration: underline; }
+
+.job-modal-apply .btn { width: 100%; padding: 13px 20px; font-size: 14px; }

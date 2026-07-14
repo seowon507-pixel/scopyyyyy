@@ -164,6 +164,28 @@
         <div class="card">
           <div class="card-head">
             <div>
+              <h2 class="card-title" id="radarATitle">기업 A</h2>
+              <p class="card-sub">아래 표에서 기업을 클릭해 선택하세요</p>
+            </div>
+            <button class="table-toggle" data-target="radar-a">표</button>
+          </div>
+          <div class="chart-body" id="chart-radar-a"></div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title" id="radarBTitle">기업 B</h2>
+              <p class="card-sub">아래 표에서 기업을 클릭해 선택하세요</p>
+            </div>
+            <button class="table-toggle" data-target="radar-b">표</button>
+          </div>
+          <div class="chart-body" id="chart-radar-b"></div>
+        </div>
+      </div>
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="card-head">
+            <div>
               <h2 class="card-title">평균연봉 Top 10</h2>
               <p class="card-sub">채용 진행 중인 기업 기준 (만원)</p>
             </div>
@@ -186,32 +208,10 @@
         <div class="card-head">
           <div>
             <h2 class="card-title">기업 인사이트</h2>
-            <p class="card-sub">데모 지표 (가상 데이터) — 진행 중 공고 수 순. 행을 클릭하면 아래 레이더에서 비교할 기업으로 선택됩니다 (최대 2곳)</p>
+            <p class="card-sub">데모 지표 (가상 데이터) — 진행 중 공고 수 순. 행을 클릭하면 위 레이더에서 비교할 기업으로 선택됩니다 (최대 2곳)</p>
           </div>
         </div>
         <div class="table-wrap" id="companiesTable"></div>
-      </div>
-      <div class="grid grid-2">
-        <div class="card">
-          <div class="card-head">
-            <div>
-              <h2 class="card-title" id="radarATitle">기업 A</h2>
-              <p class="card-sub">위 표에서 기업을 클릭해 선택하세요</p>
-            </div>
-            <button class="table-toggle" data-target="radar-a">표</button>
-          </div>
-          <div class="chart-body" id="chart-radar-a"></div>
-        </div>
-        <div class="card">
-          <div class="card-head">
-            <div>
-              <h2 class="card-title" id="radarBTitle">기업 B</h2>
-              <p class="card-sub">위 표에서 기업을 클릭해 선택하세요</p>
-            </div>
-            <button class="table-toggle" data-target="radar-b">표</button>
-          </div>
-          <div class="chart-body" id="chart-radar-b"></div>
-        </div>
       </div>
     </section>
 
@@ -303,6 +303,13 @@
       </div>
     </section>
   </main>
+</div>
+
+<div class="modal-overlay" id="jobModalOverlay" hidden>
+  <div class="modal job-modal" role="dialog" aria-modal="true" aria-labelledby="jobModalTitle">
+    <button class="modal-close" id="jobModalClose" aria-label="닫기">×</button>
+    <div class="job-modal-body" id="jobModalBody"></div>
+  </div>
 </div>
 
 <div class="chart-tooltip" id="tooltip" role="status" aria-live="polite" hidden></div>

@@ -219,17 +219,12 @@
 
   /* ── 공고 카드 ───────────────────────────── */
   function jobCard(j) {
-    const card = document.createElement("a");
+    const card = document.createElement("div");
     card.className = "job-card";
-    if (j.url) {
-      card.href = j.url;
-      card.target = "_blank";
-      card.rel = "noopener noreferrer";
-      card.addEventListener("click", (e) => {
-        if (e.target.closest(".bookmark-btn")) return;
-        recordView(j.id);
-      });
-    }
+    card.addEventListener("click", (e) => {
+      if (e.target.closest(".bookmark-btn")) return;
+      openJobModal(j);
+    });
 
     const top = document.createElement("div");
     top.className = "job-top";
@@ -298,6 +293,187 @@
 
     card.append(top, title, chips, foot);
     return card;
+  }
+
+  /* ── 공고 상세 모달 ───────────────────────────
+     공고 카드를 클릭하면 표 이동 없이 여기서 요약·기업정보·매력도 레이더를 보여준다.
+     기업 인사이트(D.companies)는 가상 데모 20곳뿐이라 실 공고(company_id)와 매칭되지
+     않으므로, 레이더는 실 API 표본(LIVE) 안에서 이 공고의 실측 지표를 정규화해 그린다. */
+  const JOB_RADAR_AXES = [
+    { key: "reward", label: "추천보상금", unit: "만원" },
+    { key: "welfare", label: "복지·문화 태그", unit: "개" },
+    { key: "skillCount", label: "요구 스킬", unit: "개" },
+    { key: "minCareer", label: "최소 요구경력", unit: "년" },
+    { key: "daysLeft", label: "지원 여유", unit: "일" },
+    { key: "companyActive", label: "기업 진행중 공고", unit: "건" },
+  ];
+
+  function jobRadarMetrics(j) {
+    const daysLeft = j.due_time ? Math.max(0, Math.ceil((new Date(j.due_time) - NOW) / 86400e3)) : 60;
+    return {
+      reward: (j.reward_total || 0) / 10000,
+      welfare: JSON.parse(j.attraction_titles || "[]").length,
+      skillCount: JSON.parse(j.skill_titles || "[]").length,
+      minCareer: j.annual_from || 0,
+      daysLeft,
+      companyActive: LIVE.filter((x) => x.status === "active" && x.company_id === j.company_id).length,
+    };
+  }
+
+  function renderJobRadar(host, j) {
+    const pool = LIVE.filter((x) => x.status === "active").map(jobRadarMetrics);
+    const maxOf = (key) => Math.max(1, ...pool.map((m) => m[key] || 0));
+    const metrics = jobRadarMetrics(j);
+    const axes = JOB_RADAR_AXES.map((ax) => ({ ...ax, max: maxOf(ax.key), value: metrics[ax.key] || 0 }));
+    Charts.radarChart(host, { axes, series: { name: j.name, color: "var(--accent)" } });
+  }
+
+  function metaItem(label, value, urgent) {
+    const item = document.createElement("div");
+    item.className = "job-modal-meta-item";
+    const l = document.createElement("div");
+    l.className = "job-modal-meta-label";
+    l.textContent = label;
+    const v = document.createElement("div");
+    v.className = "job-modal-meta-value" + (urgent ? " urgent" : "");
+    v.textContent = value;
+    item.append(l, v);
+    return item;
+  }
+
+  const withProtocol = (link) => (!link ? "" : /^https?:\/\//.test(link) ? link : `https://${link}`);
+
+  function jobModalContent(j) {
+    const wrap = document.createElement("div");
+
+    const header = document.createElement("div");
+    header.className = "job-modal-header";
+    header.appendChild(companyAvatar(j));
+    const headInfo = document.createElement("div");
+    const title = document.createElement("div");
+    title.className = "job-modal-title";
+    title.id = "jobModalTitle";
+    title.textContent = j.name;
+    const company = document.createElement("div");
+    company.className = "job-modal-company";
+    company.textContent = j.company_name;
+    const sub = document.createElement("div");
+    sub.className = "job-modal-sub";
+    sub.textContent = j.full_location || j.location || "";
+    headInfo.append(title, company, sub);
+    header.appendChild(headInfo);
+    wrap.appendChild(header);
+
+    const chipsSection = document.createElement("div");
+    chipsSection.className = "job-modal-section";
+    const chipRow = document.createElement("div");
+    chipRow.className = "chip-row";
+    [j.category_title, careerLabel(j), EMPLOYMENT_LABEL[j.employment_type]].forEach((c) => {
+      const chip = document.createElement("span");
+      chip.className = "chip";
+      chip.textContent = c;
+      chipRow.appendChild(chip);
+    });
+    JSON.parse(j.skill_titles || "[]").forEach((s) => {
+      const chip = document.createElement("span");
+      chip.className = "chip chip-skill";
+      chip.textContent = s;
+      chipRow.appendChild(chip);
+    });
+    JSON.parse(j.attraction_titles || "[]").forEach((s) => {
+      const chip = document.createElement("span");
+      chip.className = "chip chip-attraction";
+      chip.textContent = s;
+      chipRow.appendChild(chip);
+    });
+    chipsSection.appendChild(chipRow);
+    wrap.appendChild(chipsSection);
+
+    const summarySection = document.createElement("div");
+    summarySection.className = "job-modal-section";
+    const sTitle = document.createElement("div");
+    sTitle.className = "job-modal-section-title";
+    sTitle.textContent = "공고 요약";
+    summarySection.appendChild(sTitle);
+    const meta = document.createElement("div");
+    meta.className = "job-modal-meta";
+    const dd = dday(j);
+    meta.appendChild(metaItem("보상금", j.reward_total ? `${fmt(j.reward_total / 10000)}만원` : "-"));
+    meta.appendChild(metaItem("마감", dd.text, dd.urgent));
+    meta.appendChild(metaItem("경력", careerLabel(j)));
+    meta.appendChild(metaItem("근무 형태", EMPLOYMENT_LABEL[j.employment_type] || "-"));
+    summarySection.appendChild(meta);
+    wrap.appendChild(summarySection);
+
+    const companySection = document.createElement("div");
+    companySection.className = "job-modal-section";
+    const cTitle = document.createElement("div");
+    cTitle.className = "job-modal-section-title";
+    cTitle.textContent = "기업 정보";
+    companySection.appendChild(cTitle);
+    const companyCard = document.createElement("div");
+    companyCard.className = "job-modal-company-card";
+    companyCard.appendChild(companyAvatar(j));
+    const companyInfo = document.createElement("div");
+    const cName = document.createElement("div");
+    cName.className = "job-modal-company";
+    cName.textContent = j.company_name;
+    const cActive = document.createElement("div");
+    cActive.className = "job-modal-sub";
+    const activeCount = LIVE.filter((x) => x.status === "active" && x.company_id === j.company_id).length;
+    cActive.textContent = `진행중 공고 ${fmt(activeCount)}건`;
+    companyInfo.append(cName, cActive);
+    if (j.company_link) {
+      const link = document.createElement("a");
+      link.className = "job-modal-company-link";
+      link.href = withProtocol(j.company_link);
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = "기업 홈페이지 ↗";
+      companyInfo.appendChild(link);
+    }
+    companyCard.appendChild(companyInfo);
+    companySection.appendChild(companyCard);
+    wrap.appendChild(companySection);
+
+    const radarSection = document.createElement("div");
+    radarSection.className = "job-modal-section";
+    const rTitle = document.createElement("div");
+    rTitle.className = "job-modal-section-title";
+    rTitle.textContent = "공고 매력도 (수집 표본 기준)";
+    radarSection.appendChild(rTitle);
+    const radarHost = document.createElement("div");
+    radarHost.className = "chart-body";
+    radarSection.appendChild(radarHost);
+    wrap.appendChild(radarSection);
+
+    const applySection = document.createElement("div");
+    applySection.className = "job-modal-section job-modal-apply";
+    const applyBtn = document.createElement("button");
+    applyBtn.className = "btn btn-primary";
+    applyBtn.textContent = "신청사이트";
+    applyBtn.disabled = !j.url;
+    applyBtn.addEventListener("click", () => {
+      if (j.url) window.open(j.url, "_blank", "noopener,noreferrer");
+    });
+    applySection.appendChild(applyBtn);
+    wrap.appendChild(applySection);
+
+    return { wrap, radarHost };
+  }
+
+  function openJobModal(j) {
+    const { wrap, radarHost } = jobModalContent(j);
+    $("#jobModalBody").replaceChildren(wrap);
+    renderJobRadar(radarHost, j);
+    $("#jobModalOverlay").hidden = false;
+    document.body.style.overflow = "hidden";
+    recordView(j.id);
+  }
+
+  function closeJobModal() {
+    $("#jobModalOverlay").hidden = true;
+    document.body.style.overflow = "";
   }
 
   /* ── 공고 탐색 (원티드 실 API 데이터) ───────── */
@@ -445,7 +621,7 @@
     const company = id != null ? D.companies.find((c) => c.id === id) : null;
     if (!company) {
       titleEl.textContent = titleId === "#radarATitle" ? "기업 A" : "기업 B";
-      host.replaceChildren(emptyNote("위 표에서 기업을 클릭해 선택하세요."));
+      host.replaceChildren(emptyNote("아래 표에서 기업을 클릭해 선택하세요."));
       return;
     }
     titleEl.textContent = company.name;
@@ -754,6 +930,15 @@
     $("#certIssuer").value = "";
     $("#certDate").value = "";
     renderCertifications();
+  });
+
+  // 공고 상세 모달
+  $("#jobModalClose").addEventListener("click", closeJobModal);
+  $("#jobModalOverlay").addEventListener("click", (e) => {
+    if (e.target.id === "jobModalOverlay") closeJobModal();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !$("#jobModalOverlay").hidden) closeJobModal();
   });
 
   // 다크 모드
