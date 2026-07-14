@@ -37,6 +37,13 @@
     renderRecentViews();
   }
 
+  /* ── 마이페이지: 자격증 (localStorage) ─────── */
+  const certifications = JSON.parse(localStorage.getItem("scopy-certifications") || "[]"); // [{id,name,issuer,date}]
+  const saveCertifications = () => localStorage.setItem("scopy-certifications", JSON.stringify(certifications));
+
+  /* ── 마이페이지: 선호 직군 (localStorage) ──── */
+  const PREF_CATEGORY_KEY = "scopy-preferred-category";
+
   const careerLabel = (j) =>
     j.annual_from === 0 && j.annual_to <= 1 ? "신입" :
     j.annual_from === 0 ? `신입–${j.annual_to}년` : `${j.annual_from}–${j.annual_to}년`;
@@ -342,6 +349,9 @@
     const tbody = document.createElement("tbody");
     [...D.companies].sort((a, b) => b.active_jobs - a.active_jobs).forEach((c) => {
       const tr = document.createElement("tr");
+      const slot = radarSelection.a === c.id ? "a" : radarSelection.b === c.id ? "b" : null;
+      if (slot) tr.className = `tr-radar-${slot}`;
+      tr.addEventListener("click", () => selectRadarCompany(c.id));
       const cells = [
         [c.name, false, true, `${c.address} · 업력 ${c.age}년`],
         [c.industry_name, false], [`${fmt(c.employee_count)}명`, true],
@@ -356,6 +366,12 @@
           const m = document.createElement("div");
           m.className = "cell-main";
           m.textContent = text;
+          if (slot) {
+            const badge = document.createElement("span");
+            badge.className = `radar-badge radar-badge-${slot}`;
+            badge.textContent = slot.toUpperCase();
+            m.appendChild(badge);
+          }
           td.appendChild(m);
           const s = document.createElement("div");
           s.className = "cell-sub";
@@ -394,6 +410,55 @@
       grid.replaceChildren(...rows.map(jobCard));
     }
     $("#bookmarkCount").textContent = `${fmt(rows.length)}건 저장됨`;
+  }
+
+  /* ── 기업 비교 레이더 (기업 인사이트 표와 동일한 가상 지표) ──
+     기업 인사이트 테이블 행을 클릭하면 그 기업이 A/B 슬롯에 들어가고,
+     두 기업은 각자 독립된 육각형 그래프로 나란히(양쪽) 표시된다 —
+     하나의 그래프에 겹쳐 그리지 않음. 표에 이미 있는 열(평균연봉·퇴사율·
+     입사율·인원·1인당 매출·진행중 공고)을 그대로 6개 축으로 쓴다.
+     실 API 인사이트(/v1/insight/company)는 401 권한 없음이라 가상 데이터 사용. */
+  const RADAR_AXES = [
+    { key: "average_salary", label: "평균연봉", unit: "만원" },
+    { key: "left_rate", label: "퇴사율", unit: "%" },
+    { key: "hire_rate", label: "입사율", unit: "%" },
+    { key: "employee_count", label: "인원", unit: "명" },
+    { key: "sales_per_person", label: "1인당 매출", unit: "백만원" },
+    { key: "active_jobs", label: "진행중 공고", unit: "건" },
+  ];
+  // 기업 인사이트 표에서 클릭한 company id — 처음부터 그래프가 보이도록 진행중 공고 상위 2곳을 기본 선택
+  const defaultRadarPair = [...D.companies].sort((a, b) => b.active_jobs - a.active_jobs).slice(0, 2);
+  const radarSelection = { a: defaultRadarPair[0]?.id ?? null, b: defaultRadarPair[1]?.id ?? null };
+
+  function selectRadarCompany(id) {
+    if (radarSelection.a === id) { radarSelection.a = null; }
+    else if (radarSelection.b === id) { radarSelection.b = null; }
+    else if (!radarSelection.a) { radarSelection.a = id; }
+    else if (!radarSelection.b) { radarSelection.b = id; }
+    else { radarSelection.a = radarSelection.b; radarSelection.b = id; } // A,B 순환 교체
+    renderCompanies();
+    renderRadarPair();
+  }
+
+  function renderOneRadar(hostId, titleId, id, color) {
+    const host = $(hostId), titleEl = $(titleId);
+    const company = id != null ? D.companies.find((c) => c.id === id) : null;
+    if (!company) {
+      titleEl.textContent = titleId === "#radarATitle" ? "기업 A" : "기업 B";
+      host.replaceChildren(emptyNote("위 표에서 기업을 클릭해 선택하세요."));
+      return;
+    }
+    titleEl.textContent = company.name;
+    const maxOf = (key) => Math.max(1, ...D.companies.map((c) => c[key] || 0));
+    const axes = RADAR_AXES.map((ax) => ({ ...ax, max: maxOf(ax.key), value: company[ax.key] || 0 }));
+    const key = hostId.includes("radar-a") ? "radar-a" : "radar-b";
+    chartTables[key] = Charts.radarChart(host, { axes, series: { name: company.name, color } });
+    if (tableMode[key]) host.replaceChildren(chartTables[key]);
+  }
+
+  function renderRadarPair() {
+    renderOneRadar("#chart-radar-a", "#radarATitle", radarSelection.a, "var(--accent)");
+    renderOneRadar("#chart-radar-b", "#radarBTitle", radarSelection.b, "var(--c-docpass)");
   }
 
   /* ── 자소서 관리 · 기업 추천 (원티드 실 API 데이터) ── */
@@ -570,13 +635,50 @@
     renderRecommendations($("#clContent").value);
   }
 
+  /* ── 마이페이지: 자격증 ───────────────────── */
+  function deleteCertification(id) {
+    const idx = certifications.findIndex((c) => c.id === id);
+    if (idx > -1) certifications.splice(idx, 1);
+    saveCertifications();
+    renderCertifications();
+  }
+
+  function renderCertifications() {
+    const listEl = $("#certList");
+    if (!listEl) return;
+    if (!certifications.length) {
+      listEl.replaceChildren(emptyNote("등록한 자격증이 없습니다."));
+      return;
+    }
+    listEl.replaceChildren(...certifications.map((c) => {
+      const item = document.createElement("div");
+      item.className = "cl-item";
+      const main = document.createElement("div");
+      main.className = "cl-item-main";
+      const t = document.createElement("div");
+      t.className = "cl-item-title";
+      t.textContent = c.name;
+      const d = document.createElement("div");
+      d.className = "cl-item-date";
+      d.textContent = [c.issuer, c.date].filter(Boolean).join(" · ");
+      main.append(t, d);
+      const del = document.createElement("button");
+      del.className = "cl-item-del";
+      del.setAttribute("aria-label", "삭제");
+      del.textContent = "×";
+      del.addEventListener("click", () => deleteCertification(c.id));
+      item.append(main, del);
+      return item;
+    }));
+  }
+
   /* ── 오케스트레이션 ───────────────────────── */
   const VIEW_META = {
     overview: ["시장 개요", `원티드 실시간 수집 데이터 · ${D.liveFetchedAt || "-"} 기준`],
     jobs: ["공고 탐색", "조건에 맞는 포지션을 찾아보세요"],
     companies: ["기업 비교", "연봉·퇴사율·성장성으로 회사를 비교하세요"],
     bookmarks: ["북마크", "관심 공고 모아보기"],
-    coverletters: ["자소서 관리", "자소서를 저장하고 맞는 기업을 추천받으세요"],
+    mypage: ["마이페이지", "자격증·선호 직군·자소서·최근 방문 공고를 한곳에서 관리하세요"],
   };
 
   function render() {
@@ -586,8 +688,10 @@
     renderRecentViews();
     renderJobs();
     renderCompanies();
+    renderRadarPair();
     renderBookmarks();
     renderCoverLetters();
+    renderCertifications();
   }
 
   document.querySelectorAll(".nav-item").forEach((btn) => {
@@ -607,7 +711,7 @@
       tableMode[key] = !tableMode[key];
       btn.classList.toggle("is-active", tableMode[key]);
       if (tableMode[key]) $(`#chart-${key}`).replaceChildren(chartTables[key]);
-      else { renderCharts(); renderCompanies(); }
+      else { renderCharts(); renderCompanies(); renderRadarPair(); }
     });
   });
 
@@ -639,6 +743,19 @@
   });
   $("#clContent").addEventListener("input", (e) => renderRecommendations(e.target.value));
 
+  $("#certAddBtn").addEventListener("click", () => {
+    const name = $("#certName").value.trim();
+    if (!name) return;
+    const issuer = $("#certIssuer").value.trim();
+    const date = $("#certDate").value;
+    certifications.push({ id: Date.now(), name, issuer, date });
+    saveCertifications();
+    $("#certName").value = "";
+    $("#certIssuer").value = "";
+    $("#certDate").value = "";
+    renderCertifications();
+  });
+
   // 다크 모드
   const savedTheme = localStorage.getItem("scopy-theme");
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -668,6 +785,29 @@
     opt.textContent = title;
     catFilter.appendChild(opt);
   });
+
+  // 선호 직군 — 저장돼 있으면 공고 탐색 필터에도 기본 적용
+  const prefSelect = $("#prefCategory");
+  [...liveCategories.entries()].sort((a, b) => a[1].localeCompare(b[1])).forEach(([id, title]) => {
+    const opt = document.createElement("option");
+    opt.value = id;
+    opt.textContent = title;
+    prefSelect.appendChild(opt);
+  });
+  const savedPref = localStorage.getItem(PREF_CATEGORY_KEY) || "";
+  if (savedPref) {
+    prefSelect.value = savedPref;
+    state.category = savedPref;
+    catFilter.value = savedPref;
+  }
+  prefSelect.addEventListener("change", (e) => {
+    const val = e.target.value;
+    localStorage.setItem(PREF_CATEGORY_KEY, val);
+    state.category = val;
+    catFilter.value = val;
+    renderJobs();
+  });
+
   $("#pageSub").textContent = VIEW_META.overview[1];
   render();
 })();

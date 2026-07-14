@@ -32,9 +32,9 @@
         <svg viewBox="0 0 20 20"><path d="M5 3a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v15l-5-3.5L5 18z"/></svg>
         북마크
       </button>
-      <button class="nav-item" data-view="coverletters">
-        <svg viewBox="0 0 20 20"><path d="M4 2h8l4 4v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zm7 1.5V6h2.5L11 3.5zM6 10h8v1.2H6zm0 3h8v1.2H6zm0 3h5v1.2H6z"/></svg>
-        자소서 관리
+      <button class="nav-item" data-view="mypage">
+        <svg viewBox="0 0 20 20"><path d="M10 10.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM3 18a7 7 0 0 1 14 0z"/></svg>
+        마이페이지
       </button>
     </nav>
     <div class="sidebar-foot">
@@ -128,15 +128,6 @@
           <div class="reco-list" id="dueSoonList"></div>
         </div>
       </div>
-      <div class="card">
-        <div class="card-head">
-          <div>
-            <h2 class="card-title">최근 방문 공고</h2>
-            <p class="card-sub">클릭했던 공고 최근 순 (이 브라우저에만 저장)</p>
-          </div>
-        </div>
-        <div class="reco-list" id="recentViewsList"></div>
-      </div>
     </section>
 
     <!-- 공고 탐색 -->
@@ -195,10 +186,32 @@
         <div class="card-head">
           <div>
             <h2 class="card-title">기업 인사이트</h2>
-            <p class="card-sub">데모 지표 (가상 데이터) — 진행 중 공고 수 순. 원티드 인사이트 API는 별도 권한 필요</p>
+            <p class="card-sub">데모 지표 (가상 데이터) — 진행 중 공고 수 순. 행을 클릭하면 아래 레이더에서 비교할 기업으로 선택됩니다 (최대 2곳)</p>
           </div>
         </div>
         <div class="table-wrap" id="companiesTable"></div>
+      </div>
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title" id="radarATitle">기업 A</h2>
+              <p class="card-sub">위 표에서 기업을 클릭해 선택하세요</p>
+            </div>
+            <button class="table-toggle" data-target="radar-a">표</button>
+          </div>
+          <div class="chart-body" id="chart-radar-a"></div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title" id="radarBTitle">기업 B</h2>
+              <p class="card-sub">위 표에서 기업을 클릭해 선택하세요</p>
+            </div>
+            <button class="table-toggle" data-target="radar-b">표</button>
+          </div>
+          <div class="chart-body" id="chart-radar-b"></div>
+        </div>
       </div>
     </section>
 
@@ -215,8 +228,36 @@
       </div>
     </section>
 
-    <!-- 자소서 관리 -->
-    <section class="view" id="view-coverletters">
+    <!-- 마이페이지 -->
+    <section class="view" id="view-mypage">
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">자격증</h2>
+              <p class="card-sub">보유한 자격증을 등록해두세요 (이 브라우저에만 저장)</p>
+            </div>
+          </div>
+          <div class="cert-form">
+            <input type="text" id="certName" class="search-input" placeholder="자격증명 (예: 정보처리기사)">
+            <input type="text" id="certIssuer" class="search-input" placeholder="발급기관">
+            <input type="month" id="certDate" class="search-input">
+            <button class="btn btn-primary" id="certAddBtn">추가</button>
+          </div>
+          <div class="cl-list" id="certList"></div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">선호 직군</h2>
+              <p class="card-sub">선택하면 공고 탐색의 직군 필터에 기본 적용됩니다</p>
+            </div>
+          </div>
+          <select id="prefCategory" class="select pref-select">
+            <option value="">선택 안 함</option>
+          </select>
+        </div>
+      </div>
       <div class="grid grid-2">
         <div class="card">
           <div class="card-head card-head-stack">
@@ -250,6 +291,15 @@
           </div>
         </div>
         <div id="clRecommend"></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">최근 방문 공고</h2>
+            <p class="card-sub">클릭했던 공고 최근 순 (이 브라우저에만 저장)</p>
+          </div>
+        </div>
+        <div class="reco-list" id="recentViewsList"></div>
       </div>
     </section>
   </main>

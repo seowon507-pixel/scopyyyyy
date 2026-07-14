@@ -15,6 +15,7 @@
 
   --accent:      #2a78d6;       /* series 1 · blue */
   --accent-soft: rgba(42, 120, 214, 0.10);
+  --docpass-soft: rgba(237, 161, 0, 0.12);
   --c-complete:  #2a78d6;       /* 지원완료 */
   --c-docpass:   #eda100;       /* 서류통과 */
   --c-hire:      #008300;       /* 최종합격 */
@@ -46,6 +47,7 @@
 
   --accent:      #3987e5;
   --accent-soft: rgba(57, 135, 229, 0.14);
+  --docpass-soft: rgba(201, 133, 0, 0.16);
   --c-complete:  #3987e5;
   --c-docpass:   #c98500;
   --c-hire:      #008300;
@@ -281,8 +283,20 @@ td {
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 tr:last-child td { border-bottom: 0; }
 tbody tr:hover td { background: var(--surface-2); }
-.cell-main { font-weight: 600; }
+tbody tr { cursor: pointer; }
+tbody tr.tr-radar-a td { background: var(--accent-soft); }
+tbody tr.tr-radar-b td { background: var(--docpass-soft); }
+tbody tr.tr-radar-a td:first-child { border-left: 3px solid var(--accent); }
+tbody tr.tr-radar-b td:first-child { border-left: 3px solid var(--c-docpass); }
+.cell-main { font-weight: 600; display: flex; align-items: center; gap: 6px; }
 .cell-sub { font-size: 12px; color: var(--ink-3); }
+.radar-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 5px;
+  font-size: 10px; font-weight: 800; color: #fff;
+}
+.radar-badge-a { background: var(--accent); }
+.radar-badge-b { background: var(--c-docpass); }
 
 .badge {
   display: inline-flex; align-items: center; gap: 6px;
@@ -432,6 +446,10 @@ tbody tr:hover td { background: var(--surface-2); }
   cursor: pointer; padding: 2px 6px; flex-shrink: 0;
 }
 .cl-item-del:hover { color: var(--urgent); }
+
+.cert-form { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.cert-form .search-input { flex: 1; min-width: 140px; }
+.pref-select { width: 100%; }
 
 .reco-wrap { display: flex; flex-direction: column; gap: 14px; }
 .reco-summary { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 13px; color: var(--ink-2); }

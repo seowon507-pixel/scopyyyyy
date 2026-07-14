@@ -320,6 +320,79 @@ const Charts = (() => {
       [d.label, ...d.values.map(fmt), fmt(d.values.reduce((a, b) => a + b, 0))]));
   }
 
+  /* ── 레이더(육각형) 차트 (단일 시리즈 · 정규화 0~1) ──────── */
+  function radarChart(container, { axes, series }) {
+    container.replaceChildren();
+    const N = axes.length;
+    const W = 400, H = 340;
+    const cx = W / 2, cy = H / 2 - 6, R = 120;
+    const angle = (i) => -Math.PI / 2 + i * ((2 * Math.PI) / N);
+    const pt = (i, frac) => ({ x: cx + R * frac * Math.cos(angle(i)), y: cy + R * frac * Math.sin(angle(i)) });
+    const clampFrac = (v, max) => Math.max(0, Math.min(1, max > 0 ? v / max : 0));
+
+    const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" });
+
+    // 그리드 (25/50/75/100%) + 스포크
+    [0.25, 0.5, 0.75, 1].forEach((level) => {
+      const pts = axes.map((_, i) => pt(i, level));
+      svg.appendChild(svgEl("polygon", {
+        points: pts.map((p) => `${p.x},${p.y}`).join(" "),
+        fill: "none", stroke: "var(--grid)", "stroke-width": 1,
+      }));
+    });
+    axes.forEach((ax, i) => {
+      const edge = pt(i, 1);
+      svg.appendChild(svgEl("line", { x1: cx, y1: cy, x2: edge.x, y2: edge.y, stroke: "var(--grid)", "stroke-width": 1 }));
+      const label = pt(i, 1.2);
+      const cos = Math.cos(angle(i));
+      const anchor = cos > 0.3 ? "start" : cos < -0.3 ? "end" : "middle";
+      const lbl = svgEl("text", { x: label.x, y: label.y + 4, "text-anchor": anchor, class: "axis-text" });
+      lbl.textContent = ax.label;
+      svg.appendChild(lbl);
+    });
+
+    const pts = axes.map((ax, i) => pt(i, clampFrac(ax.value, ax.max)));
+    svg.appendChild(svgEl("polygon", {
+      points: pts.map((p) => `${p.x},${p.y}`).join(" "),
+      fill: series.color, "fill-opacity": 0.16, stroke: series.color, "stroke-width": 2,
+    }));
+    pts.forEach((p) => svg.appendChild(svgEl("circle", { cx: p.x, cy: p.y, r: 3.5, fill: series.color, stroke: "var(--surface)", "stroke-width": 1.5 })));
+
+    // 히트존: 각도로 가장 가까운 축을 찾아 값 툴팁
+    const hit = svgEl("circle", { cx, cy, r: R * 1.35, fill: "transparent" });
+    hit.addEventListener("pointermove", (e) => {
+      const box = svg.getBoundingClientRect();
+      const mx = ((e.clientX - box.left) / box.width) * W;
+      const my = ((e.clientY - box.top) / box.height) * H;
+      let a = Math.atan2(my - cy, mx - cx) + Math.PI / 2;
+      if (a < 0) a += 2 * Math.PI;
+      const i = Math.round(a / ((2 * Math.PI) / N)) % N;
+      const ax = axes[i];
+      showTooltip(e.clientX, e.clientY, ax.label, [
+        { color: series.color, value: `${fmt(ax.value)}${ax.unit || ""}`, name: series.name },
+      ]);
+    });
+    hit.addEventListener("pointerleave", hideTooltip);
+    svg.appendChild(hit);
+
+    container.appendChild(svg);
+
+    const legend = document.createElement("div");
+    legend.className = "legend";
+    const key = document.createElement("span");
+    key.className = "legend-key";
+    const sw = document.createElement("span");
+    sw.className = "legend-swatch";
+    sw.style.background = series.color;
+    const label = document.createElement("span");
+    label.textContent = series.name;
+    key.append(sw, label);
+    legend.appendChild(key);
+    container.appendChild(legend);
+
+    return buildTable(["지표", series.name], axes.map((ax) => [ax.label, `${fmt(ax.value)}${ax.unit || ""}`]));
+  }
+
   /* ── 스파크라인 (KPI 타일용 · 12포인트) ──────────────────── */
   function sparkline(values, { width = 96, height = 28 } = {}) {
     const max = Math.max(...values, 1);
@@ -338,5 +411,5 @@ const Charts = (() => {
     return svg;
   }
 
-  return { lineChart, barChartH, funnel, stackedBarH, sparkline, fmt };
+  return { lineChart, barChartH, funnel, stackedBarH, radarChart, sparkline, fmt };
 })();
