@@ -30,6 +30,7 @@
   const coverLetters = JSON.parse(localStorage.getItem("scopy-coverletters") || "[]");
   const saveCoverLetters = () => localStorage.setItem("scopy-coverletters", JSON.stringify(coverLetters));
   state.clSelectedId = null;
+  state.clMode = "write"; // "write" | "file"
   const selectedCoverLetterText = () => {
     const selected = coverLetters.find((item) => item.id === state.clSelectedId);
     return selected?.content || selected?.fileName || "";
@@ -54,6 +55,10 @@
   /* ── 마이페이지: 외부활동 (localStorage) ───── */
   const activities = JSON.parse(localStorage.getItem("scopy-activities") || "[]");
   const saveActivities = () => localStorage.setItem("scopy-activities", JSON.stringify(activities));
+
+  /* ── 마이페이지: 학력 (localStorage) ───────── */
+  const education = JSON.parse(localStorage.getItem("scopy-education") || "[]"); // [{id,school,major,status}]
+  const saveEducation = () => localStorage.setItem("scopy-education", JSON.stringify(education));
 
   /* ── 마이페이지: 선호 직군 (localStorage) ──── */
   const PREF_CATEGORIES_KEY = "scopy-preferred-categories";
@@ -831,6 +836,10 @@
     return activities.map((a) => `${a.type} ${a.title} ${a.org || ""}`).join(" ");
   }
 
+  function educationKeywordText() {
+    return education.map((e) => `${e.school || ""} ${e.major || ""}`).join(" ");
+  }
+
   function preferredCategoryIds() {
     try { return JSON.parse(localStorage.getItem(PREF_CATEGORIES_KEY) || "[]").filter(Boolean).slice(0, 3); }
     catch { return []; }
@@ -842,7 +851,7 @@
 
   function renderRecommendations(text) {
     const container = $("#clRecommend");
-    const profileText = [text, certKeywordText(), activityKeywordText()].filter((t) => t && t.trim()).join(" ");
+    const profileText = [text, certKeywordText(), activityKeywordText(), educationKeywordText()].filter((t) => t && t.trim()).join(" ");
     const prefTitles = preferredCategoryTitles();
     const matched = ALL_KEYWORDS.filter((k) => textHasKeyword(profileText, k));
 
@@ -943,6 +952,16 @@
     container.replaceChildren(wrap);
   }
 
+  function setClMode(mode) {
+    state.clMode = mode;
+    const isWrite = mode === "write";
+    $("#clContent").hidden = !isWrite;
+    $("#clFileRow").hidden = isWrite;
+    $("#clModeWriteBtn").classList.toggle("is-active", isWrite);
+    $("#clModeFileBtn").classList.toggle("is-active", !isWrite);
+    $("#clSaveBtn").textContent = isWrite ? "저장" : "파일 등록";
+  }
+
   function deleteCoverLetter(id) {
     const idx = coverLetters.findIndex((c) => c.id === id);
     if (idx > -1) coverLetters.splice(idx, 1);
@@ -950,6 +969,7 @@
     if (state.clSelectedId === id) {
       state.clSelectedId = null;
       $("#clTitle").value = "";
+      $("#clContent").value = "";
       $("#clFile").value = "";
     }
     renderCoverLetters();
@@ -992,6 +1012,8 @@
         item.addEventListener("click", () => {
           state.clSelectedId = cl.id;
           $("#clTitle").value = cl.title;
+          $("#clContent").value = cl.content || "";
+          setClMode("write");
           renderCoverLetters();
         });
         item.append(main, del);
@@ -1290,6 +1312,47 @@
     document.body.style.overflow = "";
   }
 
+  /* ── 마이페이지: 학력 ─────────────────────── */
+  function deleteEducation(id) {
+    const idx = education.findIndex((item) => item.id === id);
+    if (idx > -1) education.splice(idx, 1);
+    saveEducation();
+    renderEducation();
+    renderRecommendations(selectedCoverLetterText());
+    if ($("#resumeTemplate")) renderResumeBuilder();
+  }
+
+  function educationItem(edu) {
+    const item = document.createElement("div");
+    item.className = "cl-item";
+    const main = document.createElement("div");
+    main.className = "cl-item-main";
+    const title = document.createElement("div");
+    title.className = "cl-item-title";
+    title.textContent = edu.school;
+    const meta = document.createElement("div");
+    meta.className = "cl-item-date";
+    meta.textContent = [edu.major, edu.status].filter(Boolean).join(" · ");
+    main.append(title, meta);
+    const del = document.createElement("button");
+    del.className = "cl-item-del";
+    del.setAttribute("aria-label", "삭제");
+    del.textContent = "×";
+    del.addEventListener("click", () => deleteEducation(edu.id));
+    item.append(main, del);
+    return item;
+  }
+
+  function renderEducation() {
+    const host = $("#eduList");
+    if (!host) return;
+    if (!education.length) {
+      host.replaceChildren(emptyNote("등록한 학력이 없습니다."));
+      return;
+    }
+    host.replaceChildren(...education.map(educationItem));
+  }
+
   /* ── 직군별 준비도 벤치마크 ──────────────────
      공개 합격자 원본이 없으므로 실제 합격확률이 아니라, 직군별 대표 자격·활동과
      현재 프로필이 얼마나 겹치는지 보여주는 준비 체크리스트다. */
@@ -1463,7 +1526,7 @@
   function renderAiJobRecommendations() {
     const host = $("#aiJobRecommendations");
     const prefTitles = preferredCategoryTitles();
-    const profileText = [selectedCoverLetterText(), certKeywordText(), activityKeywordText()].filter(Boolean).join(" ");
+    const profileText = [selectedCoverLetterText(), certKeywordText(), activityKeywordText(), educationKeywordText()].filter(Boolean).join(" ");
     const profileKeywords = ALL_KEYWORDS.filter((keyword) => textHasKeyword(profileText, keyword));
     if (!prefTitles.length && !profileKeywords.length && !state.category) {
       host.replaceChildren(emptyNote("마이페이지에서 선호 직군이나 자격증·대외활동·자소서 파일을 등록하면 맞춤 회사와 공고를 추천할 수 있습니다."));
@@ -1532,10 +1595,10 @@
 
   /* ── 저장된 프로필로 자동 이력서 생성 ──────── */
   const RESUME_TEMPLATES = [
-    { id: "developer", title: "개발", subtitle: "프로젝트와 기술 자격을 먼저 배치", activityHeading: "프로젝트·실무 경험", order: ["summary", "certs", "activities", "coverLetter"] },
-    { id: "data", title: "데이터", subtitle: "분석 자격과 정량 경험을 먼저 배치", activityHeading: "분석·프로젝트 경험", order: ["summary", "activities", "certs", "coverLetter"] },
-    { id: "business", title: "기획·비즈니스", subtitle: "문제 해결 활동과 자소서를 먼저 배치", activityHeading: "기획·대외활동 경험", order: ["summary", "activities", "coverLetter", "certs"] },
-    { id: "marketing", title: "마케팅·광고", subtitle: "캠페인·공모전 경험을 먼저 배치", activityHeading: "캠페인·외부활동", order: ["summary", "activities", "coverLetter", "certs"] },
+    { id: "developer", title: "개발", subtitle: "프로젝트와 기술 자격을 먼저 배치", activityHeading: "프로젝트·실무 경험", order: ["summary", "education", "certs", "activities", "coverLetter"] },
+    { id: "data", title: "데이터", subtitle: "분석 자격과 정량 경험을 먼저 배치", activityHeading: "분석·프로젝트 경험", order: ["summary", "education", "activities", "certs", "coverLetter"] },
+    { id: "business", title: "기획·비즈니스", subtitle: "문제 해결 활동과 자소서를 먼저 배치", activityHeading: "기획·대외활동 경험", order: ["summary", "education", "activities", "coverLetter", "certs"] },
+    { id: "marketing", title: "마케팅·광고", subtitle: "캠페인·공모전 경험을 먼저 배치", activityHeading: "캠페인·외부활동", order: ["summary", "education", "activities", "coverLetter", "certs"] },
   ];
   const RESUME_PROFILE_KEY = "scopy-resume-profile";
 
@@ -1557,6 +1620,7 @@
       template, coverLetter,
       certifications: certifications.filter((item) => certIds.has(String(item.id))),
       activities: activities.filter((item) => activityIds.has(String(item.id))),
+      education,
       name: $("#resumeName").value.trim() || "이름 미입력",
       email: $("#resumeEmail").value.trim(),
       phone: $("#resumePhone").value.trim(),
@@ -1573,6 +1637,12 @@
     if (key === "summary") {
       const summary = coverLetterResumeText(model.coverLetter).split(/\n+/).filter(Boolean).slice(0, 2).join(" ");
       return `<section><h2>프로필</h2><p>${paragraphHtml(summary)}</p></section>`;
+    }
+    if (key === "education") {
+      const items = model.education.length
+        ? model.education.map((edu) => `<li><strong>${escapeDocText(edu.school)}</strong><span>${escapeDocText([edu.major, edu.status].filter(Boolean).join(" · "))}</span></li>`).join("")
+        : "<li>등록된 학력이 없습니다.</li>";
+      return `<section><h2>학력</h2><ul class="activity-items">${items}</ul></section>`;
     }
     if (key === "certs") {
       const items = model.certifications.length
@@ -1703,6 +1773,16 @@
           addHeading("프로필");
           const summary = coverLetterResumeText(model.coverLetter).split(/\n+/).filter(Boolean).slice(0, 2).join(" ");
           addLines(summary);
+        } else if (section === "education") {
+          addHeading("학력");
+          if (!model.education.length) addLines("등록된 학력이 없습니다.");
+          model.education.forEach((edu) => paragraphs.push(new Paragraph({
+            children: [
+              new TextRun({ text: edu.school, bold: true }),
+              new TextRun({ text: [edu.major, edu.status].filter(Boolean).length ? ` · ${[edu.major, edu.status].filter(Boolean).join(" · ")}` : "" }),
+            ],
+            bullet: { level: 0 },
+          })));
         } else if (section === "certs") {
           addHeading("자격증·수상");
           if (!model.certifications.length) addLines("등록된 자격증이 없습니다.");
@@ -1768,6 +1848,7 @@
     renderCoverLetters();
     renderCertifications();
     renderActivities();
+    renderEducation();
     renderBenchmarks();
     renderResumeBuilder();
   }
@@ -1820,10 +1901,16 @@
   $("#sortOrder").addEventListener("change", (e) => { state.sort = e.target.value; renderJobs(); });
   $("#aiJobRecommendBtn").addEventListener("click", renderAiJobRecommendations);
 
+  $("#clModeWriteBtn").addEventListener("click", () => setClMode("write"));
+  $("#clModeFileBtn").addEventListener("click", () => setClMode("file"));
+  setClMode("write");
+
   $("#clNewBtn").addEventListener("click", () => {
     state.clSelectedId = null;
     $("#clTitle").value = "";
+    $("#clContent").value = "";
     $("#clFile").value = "";
+    setClMode("write");
     renderCoverLetters();
   });
   const CL_FILE_MAX_BYTES = 2 * 1024 * 1024;
@@ -1846,22 +1933,30 @@
   }
 
   $("#clSaveBtn").addEventListener("click", async () => {
-    const fileInput = $("#clFile");
-    const file = fileInput.files[0];
-    if (!file) { alert("등록할 자소서 파일을 선택해주세요."); return; }
-    if (!file.name.toLowerCase().endsWith(".txt")) { alert("자소서는 TXT 파일만 등록할 수 있습니다."); return; }
-    if (file.size > CL_FILE_MAX_BYTES) { alert("자소서 파일은 2MB 이하만 저장할 수 있습니다."); return; }
     const now = Date.now();
-    const title = $("#clTitle").value.trim() || file.name.replace(/\.[^.]+$/, "");
-    const next = {
-      id: state.clSelectedId || now,
-      title,
-      content: await readFileAsText(file),
-      fileName: file.name,
-      fileType: file.type || "application/octet-stream",
-      fileData: await readFileAsDataURL(file),
-      updatedAt: now,
-    };
+    let next;
+    if (state.clMode === "write") {
+      const content = $("#clContent").value.trim();
+      if (!content) { alert("자소서 내용을 입력해주세요."); return; }
+      const title = $("#clTitle").value.trim() || "제목 없음";
+      next = { id: state.clSelectedId || now, title, content, updatedAt: now };
+    } else {
+      const fileInput = $("#clFile");
+      const file = fileInput.files[0];
+      if (!file) { alert("등록할 자소서 파일을 선택해주세요."); return; }
+      if (!file.name.toLowerCase().endsWith(".txt")) { alert("자소서는 TXT 파일만 등록할 수 있습니다."); return; }
+      if (file.size > CL_FILE_MAX_BYTES) { alert("자소서 파일은 2MB 이하만 저장할 수 있습니다."); return; }
+      const title = $("#clTitle").value.trim() || file.name.replace(/\.[^.]+$/, "");
+      next = {
+        id: state.clSelectedId || now,
+        title,
+        content: await readFileAsText(file),
+        fileName: file.name,
+        fileType: file.type || "application/octet-stream",
+        fileData: await readFileAsDataURL(file),
+        updatedAt: now,
+      };
+    }
     const index = coverLetters.findIndex((item) => item.id === state.clSelectedId);
     const previous = index > -1 ? coverLetters[index] : null;
     if (index > -1) coverLetters[index] = next;
@@ -1875,8 +1970,8 @@
       return;
     }
     state.clSelectedId = next.id;
-    $("#clTitle").value = title;
-    fileInput.value = "";
+    $("#clTitle").value = next.title;
+    if (state.clMode === "file") $("#clFile").value = "";
     renderCoverLetters();
   });
 
@@ -1959,6 +2054,22 @@
     $("#activityDate").value = "";
     renderActivities();
     renderBenchmarks();
+    renderRecommendations(selectedCoverLetterText());
+    renderResumeBuilder();
+  });
+
+  $("#eduAddBtn").addEventListener("click", () => {
+    const school = $("#eduSchool").value.trim();
+    if (!school) return;
+    education.unshift({
+      id: Date.now(), school,
+      major: $("#eduMajor").value.trim(),
+      status: $("#eduStatus").value,
+    });
+    saveEducation();
+    $("#eduSchool").value = "";
+    $("#eduMajor").value = "";
+    renderEducation();
     renderRecommendations(selectedCoverLetterText());
     renderResumeBuilder();
   });

@@ -636,6 +636,13 @@ tbody tr.tr-radar-b td:first-child { border-left: 3px solid var(--c-docpass); }
 .profile-pair-grid .activity-form .search-input { width: 100%; min-width: 0; }
 .profile-pair-grid .activity-form .btn { grid-column: 1 / -1; width: 100%; }
 
+.education-form { display: grid; grid-template-columns: minmax(180px, 1.4fr) minmax(160px, 1fr) 120px auto; align-items: end; gap: 8px; margin-bottom: 12px; }
+.education-form .search-input, .education-form .select { width: 100%; min-width: 0; }
+
+.cl-mode-toggle { align-self: flex-start; margin-bottom: 12px; }
+.cl-file-row { display: flex; flex-direction: column; gap: 6px; }
+.cl-file-row[hidden] { display: none; }
+
 .cert-combobox { position: relative; flex: 1.4; min-width: 220px; }
 .cert-combobox .search-input { width: 100%; }
 .cert-search-results {
@@ -761,6 +768,8 @@ tbody tr.tr-radar-b td:first-child { border-left: 3px solid var(--c-docpass); }
   .benchmark-grid { grid-template-columns: 1fr; }
   .activity-form, .profile-pair-grid .activity-form { grid-template-columns: 1fr; }
   .activity-form .btn { width: 100%; }
+  .education-form { grid-template-columns: 1fr; }
+  .education-form .btn { width: 100%; }
   .resume-builder-card .card-head-stack { align-items: stretch; }
   .resume-builder-layout { grid-template-columns: 1fr; }
   .resume-preview { padding: 24px 20px; }
