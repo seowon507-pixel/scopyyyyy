@@ -385,6 +385,13 @@ tbody tr.tr-radar-b td:first-child { border-left: 3px solid var(--c-docpass); }
   th { font-size: 11px; padding: 8px 12px; }
   td { padding: 11px 12px; }
   .cell-sub { font-size: 12px; }
+
+  /* 모바일에서는 카드 안쪽 여백을 줄여 그래프(SVG)가 화면을 최대한 채우게 한다.
+     차트는 viewBox 기준으로 비율 그대로 확대되므로 라벨 잘림·가로 넘침 없이
+     글자도 함께 커진다 — 내부 라벨 폭·말줄임 로직은 그대로 두고 컨테이너만 넓힌다. */
+  .main { padding: 16px 10px 32px; }
+  .card { padding: 14px; }
+  .card-head { margin-bottom: 12px; }
 }
 
 .radar-badge {
