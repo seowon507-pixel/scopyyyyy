@@ -960,6 +960,15 @@
     listEl.replaceChildren(...certifications.map((c) => {
       const item = document.createElement("div");
       item.className = "cl-item";
+      const left = document.createElement("div");
+      left.className = "cert-item-left";
+      if (c.fileData && c.fileType && c.fileType.startsWith("image/")) {
+        const thumb = document.createElement("img");
+        thumb.className = "cert-thumb";
+        thumb.src = c.fileData;
+        thumb.alt = "";
+        left.appendChild(thumb);
+      }
       const main = document.createElement("div");
       main.className = "cl-item-main";
       const t = document.createElement("div");
@@ -969,12 +978,23 @@
       d.className = "cl-item-date";
       d.textContent = [c.issuer, c.date].filter(Boolean).join(" · ");
       main.append(t, d);
+      if (c.fileData) {
+        const fileLink = document.createElement("a");
+        fileLink.className = "cert-file-link";
+        fileLink.href = c.fileData;
+        fileLink.download = c.fileName || "attachment";
+        fileLink.target = "_blank";
+        fileLink.rel = "noopener noreferrer";
+        fileLink.textContent = "첨부파일 보기 ↗";
+        main.appendChild(fileLink);
+      }
+      left.appendChild(main);
       const del = document.createElement("button");
       del.className = "cl-item-del";
       del.setAttribute("aria-label", "삭제");
       del.textContent = "×";
       del.addEventListener("click", () => deleteCertification(c.id));
-      item.append(main, del);
+      item.append(left, del);
       return item;
     }));
   }
@@ -985,7 +1005,7 @@
     jobs: ["공고 탐색", "조건에 맞는 포지션을 찾아보세요"],
     companies: ["기업 비교", "연봉·퇴사율·성장성으로 회사를 비교하세요"],
     bookmarks: ["북마크", "관심 공고 모아보기"],
-    mypage: ["마이페이지", "자격증·선호 직군·자소서·최근 방문 공고를 한곳에서 관리하세요"],
+    mypage: ["마이페이지", "자격증·수상·선호 직군·자소서·최근 방문 공고를 한곳에서 관리하세요"],
   };
 
   function render() {
@@ -1001,6 +1021,23 @@
     renderCertifications();
   }
 
+  // 모바일 오프캔버스 메뉴
+  function openSidebar() {
+    $("#sidebar").classList.add("is-open");
+    $("#sidebarBackdrop").hidden = false;
+    $("#mobileMenuBtn").setAttribute("aria-expanded", "true");
+    document.body.style.overflow = "hidden";
+  }
+  function closeSidebar() {
+    $("#sidebar").classList.remove("is-open");
+    $("#sidebarBackdrop").hidden = true;
+    $("#mobileMenuBtn").setAttribute("aria-expanded", "false");
+    document.body.style.overflow = "";
+  }
+  $("#mobileMenuBtn").addEventListener("click", openSidebar);
+  $("#sidebarClose").addEventListener("click", closeSidebar);
+  $("#sidebarBackdrop").addEventListener("click", closeSidebar);
+
   document.querySelectorAll(".nav-item").forEach((btn) => {
     btn.addEventListener("click", () => {
       state.view = btn.dataset.view;
@@ -1009,6 +1046,7 @@
       const [title, sub] = VIEW_META[state.view];
       $("#pageTitle").textContent = title;
       $("#pageSub").textContent = sub;
+      closeSidebar();
     });
   });
 
@@ -1050,16 +1088,45 @@
   });
   $("#clContent").addEventListener("input", (e) => renderRecommendations(e.target.value));
 
-  $("#certAddBtn").addEventListener("click", () => {
+  const CERT_FILE_MAX_BYTES = 3 * 1024 * 1024; // 3MB — localStorage에 base64로 저장하므로 용량 한도를 둔다
+  function readFileAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  $("#certAddBtn").addEventListener("click", async () => {
     const name = $("#certName").value.trim();
     if (!name) return;
     const issuer = $("#certIssuer").value.trim();
     const date = $("#certDate").value;
-    certifications.push({ id: Date.now(), name, issuer, date });
-    saveCertifications();
+    const fileInput = $("#certFile");
+    const file = fileInput.files[0];
+    if (file && file.size > CERT_FILE_MAX_BYTES) {
+      alert("첨부파일은 3MB 이하만 저장할 수 있습니다.");
+      return;
+    }
+    const record = { id: Date.now(), name, issuer, date };
+    if (file) {
+      record.fileName = file.name;
+      record.fileType = file.type;
+      record.fileData = await readFileAsDataURL(file);
+    }
+    certifications.push(record);
+    try {
+      saveCertifications();
+    } catch (err) {
+      certifications.pop();
+      alert("저장 공간이 부족해 첨부파일을 저장하지 못했습니다. 다른 자격증의 첨부파일을 정리하거나 더 작은 파일로 시도해보세요.");
+      return;
+    }
     $("#certName").value = "";
     $("#certIssuer").value = "";
     $("#certDate").value = "";
+    fileInput.value = "";
     renderCertifications();
     renderRecommendations($("#clContent").value);
   });
@@ -1070,7 +1137,9 @@
     if (e.target.id === "jobModalOverlay") closeModal();
   });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !$("#jobModalOverlay").hidden) closeModal();
+    if (e.key !== "Escape") return;
+    if (!$("#jobModalOverlay").hidden) closeModal();
+    if ($("#sidebar").classList.contains("is-open")) closeSidebar();
   });
 
   // 다크 모드

@@ -98,9 +98,34 @@ body {
 .brand { display: flex; align-items: center; gap: 10px; padding: 0 10px; }
 .brand-mark {
   width: 26px; height: 26px; border-radius: 8px;
+  flex-shrink: 0;
   background: linear-gradient(135deg, var(--accent), #1c5cab);
 }
 .brand-name { font-size: 19px; font-weight: 800; letter-spacing: -0.02em; }
+
+.sidebar-close { display: none; }
+
+/* ── 모바일 상단바 · 오프캔버스 메뉴 ────────── */
+.mobile-topbar { display: none; }
+.mobile-menu-btn {
+  width: 34px; height: 34px; flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ink-2);
+  display: grid; place-items: center;
+  cursor: pointer;
+}
+.mobile-menu-btn:hover { background: var(--surface-2); }
+.mobile-menu-btn svg { width: 18px; height: 18px; fill: currentColor; }
+
+.sidebar-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(11, 11, 11, 0.45);
+  z-index: 80;
+}
+.sidebar-backdrop[hidden] { display: none; }
+[data-theme="dark"] .sidebar-backdrop { background: rgba(0, 0, 0, 0.6); }
 
 .nav { display: flex; flex-direction: column; gap: 2px; }
 .nav-item {
@@ -208,7 +233,42 @@ body {
 /* ── 카드 & 그리드 ─────────────────────────── */
 .grid { display: grid; gap: 16px; }
 .grid-2 { grid-template-columns: 1fr 1fr; }
-@media (max-width: 980px) { .grid-2 { grid-template-columns: 1fr; } .sidebar { display: none; } }
+@media (max-width: 980px) {
+  .grid-2 { grid-template-columns: 1fr; }
+
+  .mobile-topbar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-soft);
+    position: sticky; top: 0;
+    background: var(--page);
+    z-index: 60;
+  }
+
+  .sidebar {
+    position: fixed; inset: 0 auto 0 0;
+    width: 260px; max-width: 82vw;
+    height: 100vh;
+    z-index: 90;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    box-shadow: var(--shadow);
+    background: var(--page);
+  }
+  .sidebar.is-open { transform: translateX(0); }
+  .sidebar-close {
+    display: grid; place-items: center;
+    margin-left: auto;
+    width: 28px; height: 28px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ink-2);
+    font-size: 17px; line-height: 1;
+    cursor: pointer;
+  }
+  .sidebar-close:hover { background: var(--surface-2); }
+}
 
 .card {
   background: var(--surface);
@@ -450,7 +510,17 @@ tbody tr.tr-radar-b td:first-child { border-left: 3px solid var(--c-docpass); }
 
 .cert-form { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .cert-form .search-input { flex: 1; min-width: 140px; }
+.cert-file-picker { padding: 6px 10px; font-size: 12px; cursor: pointer; }
 .pref-select { width: 100%; }
+
+.cert-item-left { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
+.cert-thumb {
+  width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0;
+  object-fit: cover;
+  background: var(--surface-2);
+}
+.cert-file-link { display: inline-block; margin-top: 3px; font-size: 12px; color: var(--accent); }
+.cert-file-link:hover { text-decoration: underline; }
 
 .reco-wrap { display: flex; flex-direction: column; gap: 14px; }
 .reco-summary-group { display: flex; flex-direction: column; gap: 8px; }
