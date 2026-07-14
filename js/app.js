@@ -650,20 +650,6 @@
   function renderCompanies() {
     const companies = companyAggregates();
 
-    chartTables.salary = Charts.barChartH($("#chart-salary"), {
-      items: [...companies].filter((c) => c.avgReward > 0).sort((a, b) => b.avgReward - a.avgReward).slice(0, 10)
-        .map((c) => ({ label: c.name, value: c.avgReward })),
-      unit: "만원",
-    });
-    chartTables.hiring = Charts.barChartH($("#chart-hiring"), {
-      items: [...companies].sort((a, b) => b.activeJobs - a.activeJobs).slice(0, 10)
-        .map((c) => ({ label: c.name, value: c.activeJobs })),
-    });
-    for (const [key, on] of Object.entries(tableMode)) {
-      const host = $(`#chart-${key}`);
-      if (on && host && chartTables[key]) host.replaceChildren(chartTables[key]);
-    }
-
     const table = document.createElement("table");
     const thead = document.createElement("thead");
     thead.innerHTML = "<tr><th>기업</th><th>대표 직군</th><th class='num'>진행중 공고</th><th>복지·문화</th></tr>";
