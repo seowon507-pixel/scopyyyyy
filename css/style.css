@@ -867,4 +867,26 @@ tbody tr.tr-radar-b td:first-child { border-left: 3px solid var(--c-docpass); }
 .job-modal-company-link { font-size: 12px; color: var(--accent); }
 .job-modal-company-link:hover { text-decoration: underline; }
 
+/* 로그인/회원가입 */
+.auth-chip { display: flex; }
+.auth-chip-action { width: 100%; }
+.auth-chip-user {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.auth-chip-email {
+  font-size: 12px; font-weight: 600; color: var(--ink-2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.auth-modal { max-width: 380px; }
+.auth-tabs { margin: 4px 0 18px; }
+.auth-tabs .range-btn { flex: 1; }
+.auth-form { display: flex; flex-direction: column; gap: 12px; }
+.auth-input { width: 100%; }
+.auth-message { margin: -4px 0 0; color: var(--ink-3); font-size: 12px; line-height: 1.5; }
+.auth-message.is-error { color: var(--urgent); }
+.auth-resend { width: 100%; }
+
 .job-modal-apply .btn { width: 100%; padding: 13px 20px; font-size: 14px; }
