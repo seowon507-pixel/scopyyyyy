@@ -681,53 +681,86 @@
     return p;
   }
 
+  /* ── 추천 기업 판단 로직 ─────────────────────
+     세 가지 신호를 취합한다:
+     1) 자소서 본문 — 자유 텍스트 키워드 매칭
+     2) 자격증명·발급기관 — 자소서와 동일한 키워드 매칭 텍스트에 합쳐서 취급
+     3) 선호 직군(마이페이지에서 선택) — 직군명이 정확히 일치하면 가중치를 더 크게 부여
+        (자유 텍스트 매칭보다 명시적으로 고른 값이라 신뢰도가 높다고 보고 가산점 3점) */
+  const PREF_CATEGORY_WEIGHT = 3;
+
+  function certKeywordText() {
+    return certifications.map((c) => `${c.name} ${c.issuer || ""}`).join(" ");
+  }
+
+  function preferredCategoryTitle() {
+    const id = localStorage.getItem(PREF_CATEGORY_KEY) || "";
+    return id ? liveCategories.get(Number(id)) || null : null;
+  }
+
   function renderRecommendations(text) {
     const container = $("#clRecommend");
-    if (!text || !text.trim()) {
-      container.replaceChildren(emptyNote("자소서를 작성하면 맞는 기업을 추천합니다."));
+    const profileText = [text, certKeywordText()].filter((t) => t && t.trim()).join(" ");
+    const prefTitle = preferredCategoryTitle();
+    const matched = ALL_KEYWORDS.filter((k) => textHasKeyword(profileText, k));
+
+    if (!matched.length && !prefTitle) {
+      container.replaceChildren(emptyNote("자소서나 자격증을 입력하거나 선호 직군을 선택하면 맞는 기업을 추천합니다."));
       return;
     }
-    const matched = ALL_KEYWORDS.filter((k) => textHasKeyword(text, k));
-    if (!matched.length) {
-      container.replaceChildren(emptyNote("직군·스킬·복지 키워드를 찾지 못했습니다. 기술 스택이나 직무명, 원하는 근무 방식을 구체적으로 써보세요."));
-      return;
-    }
+
     const sets = companyKeywordSets();
     const scored = Object.values(sets)
       .map((rec) => {
         const hits = matched.filter((k) => rec.keywords.has(k));
-        return { rec, hits, score: hits.length };
+        const prefHit = Boolean(prefTitle && rec.keywords.has(prefTitle));
+        return { rec, hits, prefHit, score: hits.length + (prefHit ? PREF_CATEGORY_WEIGHT : 0) };
       })
       .filter((x) => x.score > 0)
       .sort((a, b) => b.score - a.score || b.rec.activeJobs - a.rec.activeJobs)
-      .slice(0, 6);
+      .slice(0, 8);
 
     const wrap = document.createElement("div");
     wrap.className = "reco-wrap";
 
-    const summary = document.createElement("div");
-    summary.className = "reco-summary";
-    summary.append("감지된 키워드");
-    const chipRow = document.createElement("span");
-    chipRow.className = "chip-row";
-    matched.slice(0, 14).forEach((k) => {
+    const summaryGroup = document.createElement("div");
+    summaryGroup.className = "reco-summary-group";
+    if (matched.length) {
+      const summary = document.createElement("div");
+      summary.className = "reco-summary";
+      summary.append("감지된 키워드 (자소서·자격증)");
+      const chipRow = document.createElement("span");
+      chipRow.className = "chip-row";
+      matched.slice(0, 14).forEach((k) => {
+        const chip = document.createElement("span");
+        chip.className = "chip chip-skill";
+        chip.textContent = k;
+        chipRow.appendChild(chip);
+      });
+      summary.appendChild(chipRow);
+      summaryGroup.appendChild(summary);
+    }
+    if (prefTitle) {
+      const summary = document.createElement("div");
+      summary.className = "reco-summary";
+      summary.append("선호 직군");
       const chip = document.createElement("span");
-      chip.className = "chip chip-skill";
-      chip.textContent = k;
-      chipRow.appendChild(chip);
-    });
-    summary.appendChild(chipRow);
-    wrap.appendChild(summary);
+      chip.className = "chip chip-pref";
+      chip.textContent = prefTitle;
+      summary.appendChild(chip);
+      summaryGroup.appendChild(summary);
+    }
+    wrap.appendChild(summaryGroup);
 
     if (!scored.length) {
-      wrap.appendChild(emptyNote("키워드는 찾았지만 지금 채용 중인 기업 중에는 일치하는 곳이 없습니다."));
+      wrap.appendChild(emptyNote("조건은 찾았지만 지금 채용 중인 기업 중에는 일치하는 곳이 없습니다."));
     } else {
       const list = document.createElement("div");
       list.className = "reco-list";
-      scored.forEach(({ rec, hits }) => {
+      scored.forEach(({ rec, hits, prefHit }) => {
         const item = document.createElement("a");
         item.className = "reco-item";
-        item.href = rec.link;
+        item.href = withProtocol(rec.link);
         item.target = "_blank";
         item.rel = "noopener noreferrer";
 
@@ -745,6 +778,12 @@
 
         const hitChips = document.createElement("div");
         hitChips.className = "chip-row";
+        if (prefHit) {
+          const chip = document.createElement("span");
+          chip.className = "chip chip-pref";
+          chip.textContent = `선호 직군: ${prefTitle}`;
+          hitChips.appendChild(chip);
+        }
         hits.slice(0, 5).forEach((k) => {
           const chip = document.createElement("span");
           chip.className = "chip chip-skill";
@@ -817,6 +856,7 @@
     if (idx > -1) certifications.splice(idx, 1);
     saveCertifications();
     renderCertifications();
+    renderRecommendations($("#clContent").value);
   }
 
   function renderCertifications() {
@@ -930,6 +970,7 @@
     $("#certIssuer").value = "";
     $("#certDate").value = "";
     renderCertifications();
+    renderRecommendations($("#clContent").value);
   });
 
   // 공고 상세 모달
@@ -991,6 +1032,7 @@
     state.category = val;
     catFilter.value = val;
     renderJobs();
+    renderRecommendations($("#clContent").value);
   });
 
   $("#pageSub").textContent = VIEW_META.overview[1];

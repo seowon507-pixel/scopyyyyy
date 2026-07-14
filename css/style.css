@@ -453,7 +453,9 @@ tbody tr.tr-radar-b td:first-child { border-left: 3px solid var(--c-docpass); }
 .pref-select { width: 100%; }
 
 .reco-wrap { display: flex; flex-direction: column; gap: 14px; }
+.reco-summary-group { display: flex; flex-direction: column; gap: 8px; }
 .reco-summary { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.chip-pref { background: var(--accent); color: #fff; }
 .reco-list { display: flex; flex-direction: column; gap: 8px; }
 .reco-item {
   display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
