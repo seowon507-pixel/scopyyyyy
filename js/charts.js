@@ -204,7 +204,7 @@ const Charts = (() => {
       const barColor = color || CATEGORICAL_PALETTE[i % CATEGORICAL_PALETTE.length];
       const y = 4 + i * rowH;
       const w = Math.max(2, (d.value / maxV) * plotW);
-      const name = svgEl("text", { x: padL, y: y + barH / 2 + 4, "text-anchor": "start", class: "mark-label" });
+      const name = svgEl("text", { x: padL + labelW - 6, y: y + barH / 2 + 4, "text-anchor": "end", class: "mark-label" });
       name.textContent = displayLabels[i];
       svg.appendChild(name);
 
