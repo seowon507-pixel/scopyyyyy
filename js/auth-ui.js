@@ -1,8 +1,7 @@
-// scopy — 로그인/회원가입 모달 및 사이드바 계정 칩 UI
+// scopy — 로그인 게이트: 인증 전에는 사이트 전체를 가리고, 로그인/이메일 인증
+// 완료 후에만(Supabase 세션이 생긴 후에만) 콘텐츠를 보여준다.
 (function () {
   const overlay = document.getElementById('authModalOverlay');
-  const closeBtn = document.getElementById('authModalClose');
-  const openBtn = document.getElementById('authOpenBtn');
   const title = document.getElementById('authModalTitle');
   const tabSignin = document.getElementById('authTabSignin');
   const tabSignup = document.getElementById('authTabSignup');
@@ -39,19 +38,12 @@
     resendBtn.hidden = true;
   }
 
-  function openModal() {
-    overlay.hidden = false;
-    setMode('signin');
-    form.reset();
+  function setLocked(locked) {
+    document.body.classList.toggle('is-locked', locked);
+    overlay.hidden = !locked;
+    if (locked) setMode('signin');
   }
 
-  function closeModal() {
-    overlay.hidden = true;
-  }
-
-  openBtn.addEventListener('click', openModal);
-  closeBtn.addEventListener('click', closeModal);
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
   tabSignin.addEventListener('click', () => setMode('signin'));
   tabSignup.addEventListener('click', () => setMode('signup'));
 
@@ -88,8 +80,7 @@
       setMessage(`${email} 주소로 인증 메일을 보냈습니다. 메일함에서 링크를 눌러 인증을 완료해주세요.`);
       return;
     }
-
-    closeModal();
+    // 로그인 성공 시 Auth.onChange가 세션을 감지해 자동으로 게이트를 해제한다.
   });
 
   resendBtn.addEventListener('click', async () => {
@@ -106,33 +97,30 @@
   });
 
   function renderAuthChip(user) {
-    if (user) {
-      authChip.innerHTML = '';
-      const info = document.createElement('div');
-      info.className = 'auth-chip-user';
-      const label = document.createElement('div');
-      label.className = 'auth-chip-email';
-      label.textContent = user.email;
-      const signOutBtn = document.createElement('button');
-      signOutBtn.type = 'button';
-      signOutBtn.className = 'btn auth-chip-action';
-      signOutBtn.textContent = '로그아웃';
-      signOutBtn.addEventListener('click', async () => {
-        signOutBtn.disabled = true;
-        await window.Auth.signOut();
-      });
-      info.appendChild(label);
-      info.appendChild(signOutBtn);
-      authChip.appendChild(info);
-    } else {
-      authChip.innerHTML = '<button class="btn btn-primary auth-chip-action" id="authOpenBtn">로그인 / 회원가입</button>';
-      document.getElementById('authOpenBtn').addEventListener('click', openModal);
+    if (!user) {
+      authChip.replaceChildren();
+      return;
     }
+    const info = document.createElement('div');
+    info.className = 'auth-chip-user';
+    const label = document.createElement('div');
+    label.className = 'auth-chip-email';
+    label.textContent = user.email;
+    const signOutBtn = document.createElement('button');
+    signOutBtn.type = 'button';
+    signOutBtn.className = 'btn auth-chip-action';
+    signOutBtn.textContent = '로그아웃';
+    signOutBtn.addEventListener('click', async () => {
+      signOutBtn.disabled = true;
+      await window.Auth.signOut();
+    });
+    info.append(label, signOutBtn);
+    authChip.replaceChildren(info);
   }
 
-  window.Auth.onChange(renderAuthChip);
+  window.Auth.onChange((user) => {
+    setLocked(!user);
+    renderAuthChip(user);
+  });
   window.Auth.init();
-
-  // Supabase는 이메일 인증 링크 클릭 후 세션 토큰이 담긴 채로 이 페이지로 리다이렉트한다.
-  // onAuthStateChange가 SIGNED_IN을 감지하면 위 renderAuthChip이 자동으로 갱신된다.
 })();
