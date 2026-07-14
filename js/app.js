@@ -106,24 +106,43 @@
       items: Object.values(CATEGORY_TOTALS)
         .sort((a, b) => b.total - a.total)
         .map((t) => ({ label: t.title, value: t.total })),
+      onClick: (d) => openCompanySegmentModal(
+        `${d.label} 직군 공고 기업`,
+        `수집 표본 기준 — 전수 집계(${fmt(d.value)}건)와는 다를 수 있습니다`,
+        (j) => j.category_title === d.label,
+      ),
     });
 
     const bySkill = {};
     jobs.forEach((j) => JSON.parse(j.skill_titles || "[]").forEach((s) => { bySkill[s] = (bySkill[s] || 0) + 1; }));
     chartTables.skills = Charts.barChartH($("#chart-skills"), {
       items: Object.entries(bySkill).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([label, value]) => ({ label, value })),
+      onClick: (d) => openCompanySegmentModal(
+        `"${d.label}" 스킬을 요구하는 기업`,
+        `수집 표본 기준 · 공고 ${fmt(d.value)}건`,
+        (j) => JSON.parse(j.skill_titles || "[]").includes(d.label),
+      ),
     });
 
     const bands = [["신입 가능", (j) => j.annual_from === 0], ["1–2년", (j) => j.annual_from >= 1 && j.annual_from <= 2],
                    ["3–4년", (j) => j.annual_from >= 3 && j.annual_from <= 4], ["5년 이상", (j) => j.annual_from >= 5]];
     chartTables.career = Charts.barChartH($("#chart-career"), {
       items: bands.map(([label, test]) => ({ label, value: jobs.filter(test).length })),
+      onClick: (d) => {
+        const band = bands.find(([label]) => label === d.label);
+        if (band) openCompanySegmentModal(`${d.label} 공고 기업`, `수집 표본 기준 · 공고 ${fmt(d.value)}건`, band[1]);
+      },
     });
 
     const byLoc = {};
     jobs.forEach((j) => { const l = j.location || "기타"; byLoc[l] = (byLoc[l] || 0) + 1; });
     chartTables.location = Charts.barChartH($("#chart-location"), {
       items: Object.entries(byLoc).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([label, value]) => ({ label, value })),
+      onClick: (d) => openCompanySegmentModal(
+        `${d.label} 근무지 공고 기업`,
+        `수집 표본 기준 · 공고 ${fmt(d.value)}건`,
+        (j) => (j.location || "기타") === d.label,
+      ),
     });
 
     // 복지·문화 태그 — 공고 수가 많은 기업이 과대 반영되지 않게 기업 단위로 센다
@@ -136,6 +155,11 @@
     chartTables.welfare = Charts.barChartH($("#chart-welfare"), {
       items: Object.entries(byTag).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([label, value]) => ({ label, value })),
       unit: "개사",
+      onClick: (d) => openCompanySegmentModal(
+        `"${d.label}" 태그를 가진 기업`,
+        `수집 표본 기준 · ${fmt(d.value)}개사`,
+        (j) => JSON.parse(j.attraction_titles || "[]").includes(d.label),
+      ),
     });
 
     for (const [key, on] of Object.entries(tableMode)) {
@@ -462,18 +486,85 @@
     return { wrap, radarHost };
   }
 
-  function openJobModal(j) {
-    const { wrap, radarHost } = jobModalContent(j);
-    $("#jobModalBody").replaceChildren(wrap);
-    renderJobRadar(radarHost, j);
+  function showModalBody(node) {
+    $("#jobModalBody").replaceChildren(node);
     $("#jobModalOverlay").hidden = false;
     document.body.style.overflow = "hidden";
+  }
+
+  function closeModal() {
+    $("#jobModalOverlay").hidden = true;
+    document.body.style.overflow = "";
+  }
+
+  function openJobModal(j) {
+    const { wrap, radarHost } = jobModalContent(j);
+    showModalBody(wrap);
+    renderJobRadar(radarHost, j);
     recordView(j.id);
   }
 
-  function closeJobModal() {
-    $("#jobModalOverlay").hidden = true;
-    document.body.style.overflow = "";
+  /* ── 시장 개요 막대 클릭 → 해당 구간의 기업 목록 모달 ──────
+     차트가 원티드 실 API 표본(LIVE, 200건)만 반영하므로, "전수 집계" 막대(직군)를
+     클릭해도 목록은 표본 기준이라 막대 수치와 정확히 일치하지 않을 수 있다. */
+  function companySegmentModalContent(title, subtitle, predicate) {
+    const wrap = document.createElement("div");
+
+    const header = document.createElement("div");
+    header.className = "job-modal-header";
+    const headInfo = document.createElement("div");
+    const h = document.createElement("div");
+    h.className = "job-modal-title";
+    h.id = "jobModalTitle";
+    h.textContent = title;
+    const sub = document.createElement("div");
+    sub.className = "job-modal-sub";
+    sub.textContent = subtitle;
+    headInfo.append(h, sub);
+    header.appendChild(headInfo);
+    wrap.appendChild(header);
+
+    const section = document.createElement("div");
+    section.className = "job-modal-section";
+
+    const companies = new Map();
+    LIVE.filter((j) => j.status === "active" && predicate(j)).forEach((j) => {
+      const rec = companies.get(j.company_id) || { name: j.company_name, logo: j.company_logo, count: 0 };
+      rec.count++;
+      companies.set(j.company_id, rec);
+    });
+    const rows = [...companies.values()].sort((a, b) => b.count - a.count);
+
+    if (!rows.length) {
+      section.appendChild(emptyNote("수집 표본에서 일치하는 기업을 찾지 못했습니다."));
+    } else {
+      const list = document.createElement("div");
+      list.className = "reco-list";
+      rows.forEach((c) => {
+        const item = document.createElement("div");
+        item.className = "reco-item";
+        const left = document.createElement("div");
+        left.className = "reco-left";
+        const info = document.createElement("div");
+        const name = document.createElement("div");
+        name.className = "job-company-name";
+        name.textContent = c.name;
+        info.appendChild(name);
+        left.append(companyAvatar({ company_name: c.name, company_logo: c.logo }), info);
+        const right = document.createElement("span");
+        right.className = "job-dday";
+        right.textContent = `공고 ${fmt(c.count)}건`;
+        item.append(left, right);
+        list.appendChild(item);
+      });
+      section.appendChild(list);
+    }
+    wrap.appendChild(section);
+    return wrap;
+  }
+
+  function openCompanySegmentModal(title, subtitle, predicate) {
+    showModalBody(companySegmentModalContent(title, subtitle, predicate));
   }
 
   /* ── 공고 탐색 (원티드 실 API 데이터) ───────── */
@@ -973,13 +1064,13 @@
     renderRecommendations($("#clContent").value);
   });
 
-  // 공고 상세 모달
-  $("#jobModalClose").addEventListener("click", closeJobModal);
+  // 공고 상세 · 기업 목록 모달
+  $("#jobModalClose").addEventListener("click", closeModal);
   $("#jobModalOverlay").addEventListener("click", (e) => {
-    if (e.target.id === "jobModalOverlay") closeJobModal();
+    if (e.target.id === "jobModalOverlay") closeModal();
   });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !$("#jobModalOverlay").hidden) closeJobModal();
+    if (e.key === "Escape" && !$("#jobModalOverlay").hidden) closeModal();
   });
 
   // 다크 모드

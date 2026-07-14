@@ -180,7 +180,7 @@ const Charts = (() => {
   }
 
   /* ── 수평 바 차트 (단일 색상 · 값은 바 끝에) ─────────────── */
-  function barChartH(container, { items, color = "var(--accent)", unit = "건" }) {
+  function barChartH(container, { items, color = "var(--accent)", unit = "건", onClick }) {
     container.replaceChildren();
     const rowH = 34, barH = 18, padL = 8, padR = 52, labelW = 150;
     const W = 560, H = items.length * rowH + 8;
@@ -196,13 +196,14 @@ const Charts = (() => {
       svg.appendChild(name);
 
       const bar = svgEl("path", { d: hBarPath(padL + labelW, y, w, barH), fill: color });
-      bar.style.cursor = "default";
+      bar.style.cursor = onClick ? "pointer" : "default";
       const onMove = (e) => {
         bar.setAttribute("opacity", "0.82");
         showTooltip(e.clientX, e.clientY, d.label, [{ color, value: `${fmt(d.value)}${unit}`, name: d.sub || "" }]);
       };
       bar.addEventListener("pointermove", onMove);
       bar.addEventListener("pointerleave", () => { bar.removeAttribute("opacity"); hideTooltip(); });
+      if (onClick) bar.addEventListener("click", () => onClick(d));
       svg.appendChild(bar);
 
       const val = svgEl("text", { x: padL + labelW + w + 8, y: y + barH / 2 + 4, class: "mark-label strong" });
