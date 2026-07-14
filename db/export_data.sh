@@ -7,6 +7,7 @@
 #     시장 개요/기업 비교까지는 아직 실 데이터로 못 옮김.
 set -e
 cd "$(dirname "$0")"
+python3 export_certifications.py
 DB=scopy.db
 OUT=../js/data.js
 python3 fetch_live_jobs.py > /tmp/scopy_live.json 2>/tmp/scopy_live_jobs.log || true

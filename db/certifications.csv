@@ -1,0 +1,35 @@
+id,name,issuer,type,category,applications_2024,employer_preference_rate,employer_metric,description,source_url
+NTQ-COMPUTER-2,컴퓨터활용능력 2급,대한상공회의소,국가기술자격,사무·데이터,437698,,,스프레드시트와 데이터베이스 활용 능력을 평가하는 국가기술자격,https://www.q-net.or.kr
+NTQ-COMPUTER-1,컴퓨터활용능력 1급,대한상공회의소,국가기술자격,사무·데이터,429867,,,스프레드시트와 데이터베이스의 고급 활용 능력을 평가하는 국가기술자격,https://www.q-net.or.kr
+NTQ-FORKLIFT,지게차운전기능사,한국산업인력공단,국가기술자격,건설·운전,270832,,,지게차 운전과 화물 적재 작업 능력을 평가하는 국가기술자격,https://www.q-net.or.kr
+NTQ-INDUSTRIAL-SAFETY,산업안전기사,한국산업인력공단,국가기술자격,안전·환경,196411,,,산업현장의 안전관리와 재해 예방 역량을 평가하는 국가기술자격,https://www.q-net.or.kr
+NTQ-INFO-PROCESSING,정보처리기사,한국산업인력공단,국가기술자격,IT·데이터,187548,,,소프트웨어 개발과 정보시스템 구축 역량을 평가하는 국가기술자격,https://www.q-net.or.kr
+NTQ-ELECTRIC,전기기사,한국산업인력공단,국가기술자격,전기·전자,119954,,,전기설비 설계·시공·유지관리 역량을 평가하는 국가기술자격,https://www.q-net.or.kr
+NTQ-FIRE-ELECTRIC,소방설비기사(전기분야),한국산업인력공단,국가기술자격,안전·환경,79203,,,소방 전기설비의 설계·시공·점검 역량을 평가하는 국가기술자격,https://www.q-net.or.kr
+NTQ-CONSTRUCTION-SAFETY,건설안전기사,한국산업인력공단,국가기술자격,건설·안전,74734,,,건설현장의 위험요인 관리와 재해 예방 역량을 평가하는 국가기술자격,https://www.q-net.or.kr
+NTQ-INDUSTRIAL-SAFETY-IE,산업안전산업기사,한국산업인력공단,국가기술자격,안전·환경,91546,,,산업현장의 실무 안전관리 역량을 평가하는 국가기술자격,https://www.q-net.or.kr
+NTQ-DANGEROUS-MATERIALS,위험물산업기사,한국산업인력공단,국가기술자격,화학·안전,77659,,,위험물의 저장·취급·안전관리 역량을 평가하는 국가기술자격,https://www.q-net.or.kr
+NTQ-ELECTRIC-IE,전기산업기사,한국산업인력공단,국가기술자격,전기·전자,60110,,,전기설비 운용과 유지관리 실무 역량을 평가하는 국가기술자격,https://www.q-net.or.kr
+NTQ-OFFICE-AUTOMATION,사무자동화산업기사,한국산업인력공단,국가기술자격,사무·데이터,25046,,,사무정보 시스템과 업무 자동화 운용 능력을 평가하는 국가기술자격,https://www.q-net.or.kr
+NTQ-KOREAN-COOK,한식조리기능사,한국산업인력공단,국가기술자격,음식·서비스,121700,,,한식 조리와 위생관리 능력을 평가하는 국가기술자격,https://www.q-net.or.kr
+NTQ-ELECTRIC-CRAFT,전기기능사,한국산업인력공단,국가기술자격,전기·전자,110671,,,전기설비 시공과 유지보수 기초 실무 능력을 평가하는 국가기술자격,https://www.q-net.or.kr
+NTQ-EXCAVATOR,굴착기운전기능사,한국산업인력공단,국가기술자격,건설·운전,109797,,,굴착기 조종과 건설기계 작업 능력을 평가하는 국가기술자격,https://www.q-net.or.kr
+NTQ-HAIRDRESSER,미용사(일반),한국산업인력공단,국가기술자격,미용·서비스,95683,,,헤어 미용 시술과 위생관리 능력을 평가하는 국가기술자격,https://www.q-net.or.kr
+NTQ-ENERGY,에너지관리기사,한국산업인력공단,국가기술자격,에너지·기계,,62.9,채용 우대,열에너지 설비의 효율적 운전과 관리 역량을 평가하는 국가기술자격,https://www.q-net.or.kr
+NTQ-HVAC-IE,공조냉동기계산업기사,한국산업인력공단,국가기술자격,기계·설비,,62.8,채용 우대,공조·냉동 설비의 운전과 유지관리 역량을 평가하는 국가기술자격,https://www.q-net.or.kr
+NTQ-PSYCHOLOGY-2,임상심리사 2급,한국산업인력공단,국가기술자격,상담·복지,,58.2,직장 우대,심리평가와 상담 보조 역량을 평가하는 국가기술자격,https://www.q-net.or.kr
+NTQ-VOCATIONAL-COUNSELOR-2,직업상담사 2급,한국산업인력공단,국가기술자격,상담·복지,,38.4,직장 우대,직업정보 제공과 취업상담 역량을 평가하는 국가기술자격,https://www.q-net.or.kr
+NTQ-SOCIAL-SURVEY-2,사회조사분석사 2급,한국산업인력공단,국가기술자격,조사·데이터,,36.0,직장 우대,조사 설계와 통계 분석 실무 역량을 평가하는 국가기술자격,https://www.q-net.or.kr
+NQ-CPA,공인회계사,금융위원회,국가전문자격,회계·금융,,,,회계감사·세무·재무 자문 업무를 수행하는 국가전문자격,https://www.q-net.or.kr
+NQ-TAX-ACCOUNTANT,세무사,국세청,국가전문자격,회계·금융,,,,세무 대리와 조세 상담 업무를 수행하는 국가전문자격,https://www.q-net.or.kr
+NQ-LABOR-ATTORNEY,공인노무사,고용노동부,국가전문자격,인사·노무,,,,노동관계 법령에 따른 노무 관리와 분쟁 조정 업무를 수행하는 국가전문자격,https://www.q-net.or.kr
+NQ-REAL-ESTATE,공인중개사,국토교통부,국가전문자격,부동산,,,,부동산 중개와 거래 관련 업무를 수행하는 국가전문자격,https://www.q-net.or.kr
+NQ-SOCIAL-WORKER-1,사회복지사 1급,보건복지부,국가전문자격,상담·복지,,,,사회복지 프로그램 운영과 상담 업무를 수행하는 국가전문자격,https://www.q-net.or.kr
+NQ-CARE-WORKER,요양보호사,보건복지부,국가자격,보건·복지,,,,노인 등의 신체활동과 일상생활 지원 업무를 수행하는 국가자격,https://www.q-net.or.kr
+NQ-NURSE-AIDE,간호조무사,보건복지부,국가자격,보건·의료,,,,간호와 진료 보조 업무를 수행하는 국가자격,https://www.q-net.or.kr
+PQA-SQLD,SQL 개발자(SQLD),한국데이터산업진흥원,국가공인민간자격,IT·데이터,,,,데이터 모델링과 SQL 활용 역량을 검증하는 국가공인 민간자격,https://www.dataq.or.kr
+PQA-ADSP,데이터분석 준전문가(ADsP),한국데이터산업진흥원,국가공인민간자격,IT·데이터,,,,데이터 이해와 분석 기획·분석 기초 역량을 검증하는 국가공인 민간자격,https://www.dataq.or.kr
+PQA-ERP-HR,ERP정보관리사 인사,한국생산성본부,국가공인민간자격,인사·사무,,,,ERP 기반 인사관리 실무 역량을 검증하는 국가공인 민간자격,https://license.kpc.or.kr
+PQA-GTQ,GTQ 그래픽기술자격,한국생산성본부,국가공인민간자격,디자인,,,,그래픽 도구 활용과 시각 표현 실무 능력을 검증하는 국가공인 민간자격,https://license.kpc.or.kr
+PQA-ITQ,ITQ 정보기술자격,한국생산성본부,국가공인민간자격,사무·데이터,,,,업무용 소프트웨어 활용 능력을 검증하는 국가공인 민간자격,https://license.kpc.or.kr
+PQA-TEPS,TEPS,서울대학교발전재단 TEPS관리위원회,국가공인민간자격,어학,,,,영어 의사소통 능력을 평가하는 국가공인 민간자격,https://www.teps.or.kr
