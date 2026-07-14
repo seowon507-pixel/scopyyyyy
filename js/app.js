@@ -41,6 +41,15 @@
   const certifications = JSON.parse(localStorage.getItem("scopy-certifications") || "[]"); // [{id,name,issuer,date}]
   const saveCertifications = () => localStorage.setItem("scopy-certifications", JSON.stringify(certifications));
 
+  /* ── 마이페이지: 활동 (localStorage) ────────── */
+  const activities = JSON.parse(localStorage.getItem("scopy-activities") || "[]"); // [{id,title,period,desc}]
+  const saveActivities = () => localStorage.setItem("scopy-activities", JSON.stringify(activities));
+
+  /* ── 마이페이지: 이력서용 기본정보 (localStorage) ── */
+  const PROFILE_KEY = "scopy-profile";
+  const profile = JSON.parse(localStorage.getItem(PROFILE_KEY) || "{}"); // {name,email,phone}
+  const saveProfile = () => localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+
   /* ── 마이페이지: 선호 직군 (localStorage) ──── */
   const PREF_CATEGORY_KEY = "scopy-preferred-category";
 
@@ -999,6 +1008,131 @@
     }));
   }
 
+  /* ── 마이페이지: 활동 ─────────────────────── */
+  function deleteActivity(id) {
+    const idx = activities.findIndex((a) => a.id === id);
+    if (idx > -1) activities.splice(idx, 1);
+    saveActivities();
+    renderActivities();
+  }
+
+  function renderActivities() {
+    const listEl = $("#actList");
+    if (!listEl) return;
+    if (!activities.length) {
+      listEl.replaceChildren(emptyNote("등록한 활동이 없습니다."));
+      return;
+    }
+    listEl.replaceChildren(...activities.map((a) => {
+      const item = document.createElement("div");
+      item.className = "cl-item";
+      const main = document.createElement("div");
+      main.className = "cl-item-main";
+      const t = document.createElement("div");
+      t.className = "cl-item-title";
+      t.textContent = a.title;
+      const d = document.createElement("div");
+      d.className = "cl-item-date";
+      d.textContent = [a.period, a.desc].filter(Boolean).join(" · ");
+      main.append(t, d);
+      const del = document.createElement("button");
+      del.className = "cl-item-del";
+      del.setAttribute("aria-label", "삭제");
+      del.textContent = "×";
+      del.addEventListener("click", () => deleteActivity(a.id));
+      item.append(main, del);
+      return item;
+    }));
+  }
+
+  /* ── 마이페이지: 이력서 다운로드(.docx) ──────
+     원티드 OpenAPI(v1/v2)에는 이력서·CV 양식 관련 엔드포인트가 없다(공개 문서 기준 —
+     jobs/search/companies/insight/tags만 제공, ATS·이력서 관련은 구인기업 전용이라
+     이 앱과 무관). 그래서 IT 이력서에서 흔한 구성(희망직무·자격증/수상·활동·자기소개서)을
+     자체 양식으로 만들어 브라우저에서 바로 .docx로 생성한다 — 서버 업로드 없음. */
+  function buildResumeDocument() {
+    const { Document, Paragraph, TextRun, HeadingLevel } = window.docx;
+    const name = profile.name || "이름 미입력";
+    const contact = [profile.email, profile.phone].filter(Boolean).join("   ·   ");
+    const prefTitle = preferredCategoryTitle() || "미선택";
+
+    const children = [
+      new Paragraph({ text: name, heading: HeadingLevel.TITLE }),
+    ];
+    if (contact) children.push(new Paragraph({ text: contact }));
+
+    children.push(new Paragraph({ text: "희망 직무", heading: HeadingLevel.HEADING_1 }));
+    children.push(new Paragraph({ text: prefTitle }));
+
+    children.push(new Paragraph({ text: "자격증 · 수상", heading: HeadingLevel.HEADING_1 }));
+    if (!certifications.length) {
+      children.push(new Paragraph({ text: "등록된 자격증·수상 내역이 없습니다." }));
+    } else {
+      certifications.forEach((c) => {
+        const meta = [c.issuer, c.date].filter(Boolean).join(" · ");
+        children.push(new Paragraph({
+          children: [
+            new TextRun({ text: c.name, bold: true }),
+            meta ? new TextRun({ text: `   ${meta}`, italics: true }) : new TextRun({ text: "" }),
+          ],
+        }));
+      });
+    }
+
+    children.push(new Paragraph({ text: "활동", heading: HeadingLevel.HEADING_1 }));
+    if (!activities.length) {
+      children.push(new Paragraph({ text: "등록된 활동이 없습니다." }));
+    } else {
+      activities.forEach((a) => {
+        children.push(new Paragraph({
+          children: [
+            new TextRun({ text: a.title, bold: true }),
+            a.period ? new TextRun({ text: `   (${a.period})`, italics: true }) : new TextRun({ text: "" }),
+          ],
+        }));
+        if (a.desc) children.push(new Paragraph({ text: a.desc }));
+      });
+    }
+
+    children.push(new Paragraph({ text: "자기소개서", heading: HeadingLevel.HEADING_1 }));
+    if (!coverLetters.length) {
+      children.push(new Paragraph({ text: "저장된 자소서가 없습니다." }));
+    } else {
+      [...coverLetters].sort((a, b) => b.updatedAt - a.updatedAt).forEach((cl) => {
+        children.push(new Paragraph({ text: cl.title, heading: HeadingLevel.HEADING_2 }));
+        (cl.content || "").split("\n").forEach((line) => children.push(new Paragraph({ text: line })));
+      });
+    }
+
+    return new Document({ sections: [{ children }] });
+  }
+
+  async function downloadResumeDocx() {
+    const btn = $("#resumeDownloadBtn");
+    if (!window.docx) {
+      alert("문서 생성 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 다시 시도해주세요.");
+      return;
+    }
+    btn.disabled = true;
+    const originalLabel = btn.textContent;
+    btn.textContent = "생성 중…";
+    try {
+      const doc = buildResumeDocument();
+      const blob = await window.docx.Packer.toBlob(doc);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${(profile.name || "scopy").replace(/\s+/g, "")}_이력서.docx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert("이력서 파일을 생성하지 못했습니다. 다시 시도해주세요.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+    }
+  }
+
   /* ── 오케스트레이션 ───────────────────────── */
   const VIEW_META = {
     overview: ["시장 개요", `원티드 실시간 수집 데이터 · ${D.liveFetchedAt || "-"} 기준`],
@@ -1019,6 +1153,7 @@
     renderBookmarks();
     renderCoverLetters();
     renderCertifications();
+    renderActivities();
   }
 
   // 모바일 오프캔버스 메뉴
@@ -1130,6 +1265,31 @@
     renderCertifications();
     renderRecommendations($("#clContent").value);
   });
+
+  $("#actAddBtn").addEventListener("click", () => {
+    const title = $("#actTitle").value.trim();
+    if (!title) return;
+    const period = $("#actPeriod").value.trim();
+    const desc = $("#actDesc").value.trim();
+    activities.push({ id: Date.now(), title, period, desc });
+    saveActivities();
+    $("#actTitle").value = "";
+    $("#actPeriod").value = "";
+    $("#actDesc").value = "";
+    renderActivities();
+  });
+
+  // 이력서 기본정보 (이름·이메일·연락처)
+  $("#resumeName").value = profile.name || "";
+  $("#resumeEmail").value = profile.email || "";
+  $("#resumePhone").value = profile.phone || "";
+  [["resumeName", "name"], ["resumeEmail", "email"], ["resumePhone", "phone"]].forEach(([elId, key]) => {
+    $(`#${elId}`).addEventListener("input", (e) => {
+      profile[key] = e.target.value;
+      saveProfile();
+    });
+  });
+  $("#resumeDownloadBtn").addEventListener("click", downloadResumeDocx);
 
   // 공고 상세 · 기업 목록 모달
   $("#jobModalClose").addEventListener("click", closeModal);

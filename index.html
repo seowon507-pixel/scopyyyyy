@@ -170,7 +170,7 @@
 
     <!-- 기업 비교 -->
     <section class="view" id="view-companies">
-      <div class="grid grid-2">
+      <div class="grid grid-2 grid-radar-pair">
         <div class="card">
           <div class="card-head">
             <div>
@@ -269,6 +269,21 @@
           </select>
         </div>
       </div>
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">활동</h2>
+            <p class="card-sub">프로젝트·동아리·인턴 등 활동 이력을 등록해두세요 (이 브라우저에만 저장)</p>
+          </div>
+        </div>
+        <div class="cert-form">
+          <input type="text" id="actTitle" class="search-input" placeholder="활동명 (예: 사이드 프로젝트 OO)">
+          <input type="text" id="actPeriod" class="search-input" placeholder="기간 (예: 2025.03 - 2025.06)">
+        </div>
+        <textarea id="actDesc" class="cl-textarea act-textarea" placeholder="역할·성과 등 활동 내용을 간단히 적어주세요"></textarea>
+        <button class="btn btn-primary" id="actAddBtn">추가</button>
+        <div class="cl-list act-list" id="actList"></div>
+      </div>
       <div class="grid grid-2">
         <div class="card">
           <div class="card-head card-head-stack">
@@ -312,6 +327,20 @@
         </div>
         <div class="reco-list" id="recentViewsList"></div>
       </div>
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">이력서 다운로드</h2>
+            <p class="card-sub">희망 직무·자격증·수상·활동·자소서를 IT 이력서 양식으로 모아 .docx로 내려받습니다 (원티드 API에는 이력서 양식이 없어 자체 양식으로 구성 — 브라우저에서 직접 생성, 서버 업로드 없음)</p>
+          </div>
+        </div>
+        <div class="resume-form">
+          <input type="text" id="resumeName" class="search-input" placeholder="이름">
+          <input type="text" id="resumeEmail" class="search-input" placeholder="이메일">
+          <input type="text" id="resumePhone" class="search-input" placeholder="연락처">
+        </div>
+        <button class="btn btn-primary" id="resumeDownloadBtn">이력서 다운로드 (.docx)</button>
+      </div>
     </section>
   </main>
 </div>
@@ -327,6 +356,7 @@
 
 <script src="js/data.js"></script>
 <script src="js/charts.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@9.7.1/dist/index.iife.min.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

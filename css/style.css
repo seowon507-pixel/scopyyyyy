@@ -268,6 +268,13 @@ body {
     cursor: pointer;
   }
   .sidebar-close:hover { background: var(--surface-2); }
+
+  /* 기업 비교 레이더는 위아래로 쌓지 않고 좁게라도 양옆으로 유지 */
+  .grid-radar-pair { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .grid-radar-pair .card { padding: 12px; }
+  .grid-radar-pair .card-title { font-size: 13px; }
+  .grid-radar-pair .card-sub { display: none; }
+  .grid-radar-pair .table-toggle { padding: 4px 8px; font-size: 11px; }
 }
 
 .card {
@@ -521,6 +528,12 @@ tbody tr.tr-radar-b td:first-child { border-left: 3px solid var(--c-docpass); }
 }
 .cert-file-link { display: inline-block; margin-top: 3px; font-size: 12px; color: var(--accent); }
 .cert-file-link:hover { text-decoration: underline; }
+
+.act-textarea { min-height: 90px; margin-bottom: 10px; }
+.act-list { margin-top: 12px; }
+
+.resume-form { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.resume-form .search-input { flex: 1; min-width: 140px; }
 
 .reco-wrap { display: flex; flex-direction: column; gap: 14px; }
 .reco-summary-group { display: flex; flex-direction: column; gap: 8px; }
