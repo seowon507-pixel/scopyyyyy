@@ -351,18 +351,18 @@ body {
 
 /* ── 테이블 ────────────────────────────────── */
 .table-wrap { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+table { width: 100%; border-collapse: collapse; font-size: 16px; }
 th {
   text-align: left;
-  font-size: 12px; font-weight: 600;
+  font-size: 13px; font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.05em;
   color: var(--ink-3);
-  padding: 10px 14px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--grid);
   white-space: nowrap;
 }
 td {
-  padding: 13px 14px;
+  padding: 15px 16px;
   border-bottom: 1px solid var(--border-soft);
   vertical-align: middle;
   white-space: nowrap;
@@ -376,7 +376,7 @@ tbody tr.tr-radar-b td { background: var(--docpass-soft); }
 tbody tr.tr-radar-a td:first-child { border-left: 3px solid var(--accent); }
 tbody tr.tr-radar-b td:first-child { border-left: 3px solid var(--c-docpass); }
 .cell-main { font-weight: 600; display: flex; align-items: center; gap: 6px; }
-.cell-sub { font-size: 13px; color: var(--ink-3); }
+.cell-sub { font-size: 14px; color: var(--ink-3); }
 
 /* 표는 데스크톱에서만 키움 — 모바일은 기존 크기 유지 (이 규칙이 위 기본값보다 뒤에
    와야 소스 순서상 이긴다 — 미디어쿼리는 셀렉터 우선순위를 올려주지 않는다) */
