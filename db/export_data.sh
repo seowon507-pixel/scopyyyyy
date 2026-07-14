@@ -1,13 +1,15 @@
 #!/bin/zsh
-# scopy.db → js/data.js 내보내기 (v2 — 시장 탐색 데이터)
+# scopy.db → js/data.js 내보내기 (v2.4 — 전 화면 실 API 데이터)
 # 대시보드는 이 파일 하나만 로드한다.
-# tags/companies/jobs = generate_seed.py 가상 데이터 (시장 개요·기업 비교가 사용)
-# liveJobs           = 원티드 실 API 실시간 데이터 (공고 탐색·북마크·자소서 추천이 사용)
-#   → 실 API는 공고 등록일시·기업 인사이트(평균연봉·퇴사율)를 안 주거나 권한이 없어
-#     시장 개요/기업 비교까지는 아직 실 데이터로 못 옮김.
+# liveJobs = 원티드 실 API 실시간 데이터 — 시장 개요·공고 탐색·기업 비교·북마크·
+#            자소서 추천 전부가 이걸 쓴다.
+# tags/companies/jobs(generate_seed.py 가상 시드)는 v2.4에서 제거함 — 기업 비교가
+# 마지막까지 가상 데이터를 쓰던 화면이었는데, 이제 LIVE를 기업 단위로 집계해서
+# 대체했다(평균연봉·입사율·퇴사율·1인당매출·인원은 /v1/insight/company가 여전히
+# 401이라 못 내지만, 그 항목 자체를 화면에서 뺐다 — 가짜 값으로 채우지 않음).
+# scopy.db/generate_seed.py는 리포에 남아있지만 이 스크립트는 더 이상 참조하지 않는다.
 set -e
 cd "$(dirname "$0")"
-DB=scopy.db
 OUT=../js/data.js
 python3 fetch_live_jobs.py > /tmp/scopy_live.json 2>/tmp/scopy_live_jobs.log || true
 JOB_COUNT=0
@@ -32,27 +34,8 @@ else
 fi
 
 {
-  echo "// generate_seed.py → scopy.db → export_data.sh 로 생성됨 — 직접 수정하지 말 것"
+  echo "// db/fetch_live_jobs.py → export_data.sh 로 생성됨 — 직접 수정하지 말 것"
   echo "window.SCOPY_DATA = {"
-  echo "  tags: $(sqlite3 -json $DB "SELECT * FROM tags;"),"
-  echo "  companies: $(sqlite3 -json $DB "
-    SELECT c.*,
-      (SELECT json_group_array(tg.title) FROM company_tags ct JOIN tags tg ON tg.id = ct.tag_id
-        WHERE ct.company_id = c.id) AS attraction_titles
-    FROM v_company_stats c;"),"
-  echo "  jobs: $(sqlite3 -json $DB "
-    SELECT j.*, c.name AS company_name, c.average_salary, c.left_rate, c.employee_count,
-      t.title AS category_title,
-      (SELECT json_group_array(tg.title) FROM job_tags jt JOIN tags tg ON tg.id = jt.tag_id
-        WHERE jt.job_id = j.id AND tg.tag_type = 'skill') AS skill_titles,
-      (SELECT json_group_array(tg.title) FROM job_tags jt JOIN tags tg ON tg.id = jt.tag_id
-        WHERE jt.job_id = j.id AND tg.tag_type = 'subcategory') AS subcategory_titles,
-      (SELECT json_group_array(tg.title) FROM company_tags ct JOIN tags tg ON tg.id = ct.tag_id
-        WHERE ct.company_id = j.company_id) AS attraction_titles
-    FROM jobs j
-    JOIN companies c ON c.id = j.company_id
-    LEFT JOIN tags t ON t.id = j.category_tag_id
-    ORDER BY j.created_at DESC;"),"
   echo "  liveJobs: $LIVE_JOBS,"
   echo "  liveCategoryTotals: $LIVE_TOTALS,"
   echo "  liveFetchedAt: \"$FETCHED_AT\""

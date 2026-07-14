@@ -2,9 +2,10 @@
 
 (() => {
   const D = window.SCOPY_DATA;
-  // 시장 개요·공고 탐색·북마크·자소서 추천은 원티드 실 API 데이터(LIVE)를 쓴다.
-  // 기업 비교만 가상 데이터(D.companies) — 기업 인사이트(/v1/insight/company)가
-  // 401 권한 없음이라 평균연봉·퇴사율 실 지표를 못 가져옴.
+  // 모든 화면이 원티드 실 API 데이터(LIVE)를 쓴다. 기업 비교의 평균연봉·입사율·퇴사율·
+  // 1인당매출·인원(/v1/insight/company)은 여전히 401 권한 없음이라 낼 수 없어서,
+  // 그 항목들은 빼고 실 공고(LIVE)에서 뽑을 수 있는 지표(진행중 공고·추천보상금·
+  // 복지태그·요구스킬·최소경력·지원여유)로만 기업 인사이트·레이더를 구성한다.
   const LIVE = D.liveJobs || [];
   const CATEGORY_TOTALS = D.liveCategoryTotals || {};
   const $ = (sel) => document.querySelector(sel);
@@ -330,8 +331,8 @@
 
   /* ── 공고 상세 모달 ───────────────────────────
      공고 카드를 클릭하면 표 이동 없이 여기서 요약·기업정보·매력도 레이더를 보여준다.
-     기업 인사이트(D.companies)는 가상 데모 20곳뿐이라 실 공고(company_id)와 매칭되지
-     않으므로, 레이더는 실 API 표본(LIVE) 안에서 이 공고의 실측 지표를 정규화해 그린다. */
+     레이더는 실 API 표본(LIVE) 안에서 이 공고의 실측 지표를 정규화해 그린다 — 아래
+     "기업 비교" 레이더(companyRadarMetrics)와 같은 6개 축을 공고 단위로 계산한 버전. */
   const JOB_RADAR_AXES = [
     { key: "reward", label: "추천보상금", unit: "만원" },
     { key: "welfare", label: "복지·문화 태그", unit: "개" },
@@ -599,18 +600,64 @@
     $("#jobCount").textContent = `원티드 실시간 데이터 · 진행 중 공고 ${fmt(rows.length)}건${rows.length > 60 ? " · 상위 60건 표시" : ""}`;
   }
 
-  /* ── 기업 비교 ───────────────────────────── */
+  /* ── 기업 비교 (원티드 실 API 데이터) ─────────
+     기업 인사이트(/v1/insight/company)는 401 권한 없음이라 평균연봉·입사율·퇴사율·
+     1인당매출·인원은 낼 수 없다. 대신 실 공고 표본(LIVE)을 기업 단위로 집계해
+     진행중 공고수·추천보상금·복지태그·요구스킬·최소경력·지원여유를 뽑아 쓴다. */
+  function companyAggregates() {
+    const map = new Map();
+    LIVE.filter((j) => j.status === "active").forEach((j) => {
+      let rec = map.get(j.company_id);
+      if (!rec) {
+        rec = {
+          id: j.company_id, name: j.company_name, logo: j.company_logo, link: j.company_link,
+          location: "", activeJobs: 0, categoryCounts: new Map(),
+          rewardSum: 0, rewardCount: 0, welfareTags: new Set(), skillTags: new Set(),
+          minCareer: Infinity, maxDaysLeft: 0,
+        };
+        map.set(j.company_id, rec);
+      }
+      rec.activeJobs++;
+      if (!rec.location && j.location) rec.location = j.location;
+      rec.categoryCounts.set(j.category_title, (rec.categoryCounts.get(j.category_title) || 0) + 1);
+      if (j.reward_total) { rec.rewardSum += j.reward_total; rec.rewardCount++; }
+      JSON.parse(j.attraction_titles || "[]").forEach((t) => rec.welfareTags.add(t));
+      JSON.parse(j.skill_titles || "[]").forEach((t) => rec.skillTags.add(t));
+      rec.minCareer = Math.min(rec.minCareer, j.annual_from ?? 0);
+      const daysLeft = j.due_time ? Math.max(0, Math.ceil((new Date(j.due_time) - NOW) / 86400e3)) : 60;
+      rec.maxDaysLeft = Math.max(rec.maxDaysLeft, daysLeft);
+    });
+    return [...map.values()].map((rec) => ({
+      id: rec.id, name: rec.name, logo: rec.logo, link: rec.link, location: rec.location,
+      activeJobs: rec.activeJobs,
+      topCategory: [...rec.categoryCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "-",
+      avgReward: rec.rewardCount ? Math.round(rec.rewardSum / rec.rewardCount / 10000) : 0,
+      welfareTags: [...rec.welfareTags],
+      welfareCount: rec.welfareTags.size,
+      skillCount: rec.skillTags.size,
+      minCareer: rec.minCareer === Infinity ? 0 : rec.minCareer,
+      maxDaysLeft: rec.maxDaysLeft,
+    }));
+  }
+
+  function companyRadarMetrics(c) {
+    return {
+      reward: c.avgReward, welfare: c.welfareCount, skillCount: c.skillCount,
+      minCareer: c.minCareer, daysLeft: c.maxDaysLeft, companyActive: c.activeJobs,
+    };
+  }
+
   function renderCompanies() {
-    const hiring = D.companies.filter((c) => c.active_jobs > 0);
+    const companies = companyAggregates();
 
     chartTables.salary = Charts.barChartH($("#chart-salary"), {
-      items: [...hiring].sort((a, b) => b.average_salary - a.average_salary).slice(0, 10)
-        .map((c) => ({ label: c.name, value: c.average_salary })),
+      items: [...companies].filter((c) => c.avgReward > 0).sort((a, b) => b.avgReward - a.avgReward).slice(0, 10)
+        .map((c) => ({ label: c.name, value: c.avgReward })),
       unit: "만원",
     });
     chartTables.hiring = Charts.barChartH($("#chart-hiring"), {
-      items: [...hiring].sort((a, b) => b.active_jobs - a.active_jobs).slice(0, 10)
-        .map((c) => ({ label: c.name, value: c.active_jobs })),
+      items: [...companies].sort((a, b) => b.activeJobs - a.activeJobs).slice(0, 10)
+        .map((c) => ({ label: c.name, value: c.activeJobs })),
     });
     for (const [key, on] of Object.entries(tableMode)) {
       const host = $(`#chart-${key}`);
@@ -619,54 +666,52 @@
 
     const table = document.createElement("table");
     const thead = document.createElement("thead");
-    thead.innerHTML = "<tr><th>기업</th><th>산업</th><th class='num'>인원</th><th class='num'>평균연봉</th>" +
-      "<th class='num'>신규입사자 연봉</th><th class='num'>입사율</th><th class='num'>퇴사율</th>" +
-      "<th class='num'>1인당 매출</th><th class='num'>진행중 공고</th><th>복지·문화</th></tr>";
+    thead.innerHTML = "<tr><th>기업</th><th>대표 직군</th><th class='num'>진행중 공고</th><th>복지·문화</th></tr>";
     const tbody = document.createElement("tbody");
-    [...D.companies].sort((a, b) => b.active_jobs - a.active_jobs).forEach((c) => {
+    [...companies].sort((a, b) => b.activeJobs - a.activeJobs).forEach((c) => {
       const tr = document.createElement("tr");
       const slot = radarSelection.a === c.id ? "a" : radarSelection.b === c.id ? "b" : null;
       if (slot) tr.className = `tr-radar-${slot}`;
       tr.addEventListener("click", () => selectRadarCompany(c.id));
-      const cells = [
-        [c.name, false, true, `${c.address} · 업력 ${c.age}년`],
-        [c.industry_name, false], [`${fmt(c.employee_count)}명`, true],
-        [`${fmt(c.average_salary)}만원`, true], [`${fmt(c.hired_salary)}만원`, true],
-        [`${c.hire_rate}%`, true], [`${c.left_rate}%`, true],
-        [`${fmt(c.sales_per_person)}백만원`, true], [fmt(c.active_jobs), true],
-      ];
-      cells.forEach(([text, num, main, sub]) => {
-        const td = document.createElement("td");
-        if (num) td.className = "num";
-        if (main) {
-          const m = document.createElement("div");
-          m.className = "cell-main";
-          m.textContent = text;
-          if (slot) {
-            const badge = document.createElement("span");
-            badge.className = `radar-badge radar-badge-${slot}`;
-            badge.textContent = slot.toUpperCase();
-            m.appendChild(badge);
-          }
-          td.appendChild(m);
-          const s = document.createElement("div");
-          s.className = "cell-sub";
-          s.textContent = sub;
-          td.appendChild(s);
-        } else td.textContent = text;
-        tr.appendChild(td);
-      });
+
+      const nameTd = document.createElement("td");
+      const m = document.createElement("div");
+      m.className = "cell-main";
+      m.textContent = c.name;
+      if (slot) {
+        const badge = document.createElement("span");
+        badge.className = `radar-badge radar-badge-${slot}`;
+        badge.textContent = slot.toUpperCase();
+        m.appendChild(badge);
+      }
+      nameTd.appendChild(m);
+      const s = document.createElement("div");
+      s.className = "cell-sub";
+      s.textContent = c.location || "-";
+      nameTd.appendChild(s);
+      tr.appendChild(nameTd);
+
+      const catTd = document.createElement("td");
+      catTd.textContent = c.topCategory;
+      tr.appendChild(catTd);
+
+      const jobsTd = document.createElement("td");
+      jobsTd.className = "num";
+      jobsTd.textContent = fmt(c.activeJobs);
+      tr.appendChild(jobsTd);
+
       const tagsTd = document.createElement("td");
       const chipRow = document.createElement("div");
       chipRow.className = "chip-row";
-      JSON.parse(c.attraction_titles || "[]").slice(0, 3).forEach((s) => {
+      c.welfareTags.slice(0, 3).forEach((tag) => {
         const chip = document.createElement("span");
         chip.className = "chip chip-attraction";
-        chip.textContent = s;
+        chip.textContent = tag;
         chipRow.appendChild(chip);
       });
       tagsTd.appendChild(chipRow);
       tr.appendChild(tagsTd);
+
       tbody.appendChild(tr);
     });
     table.append(thead, tbody);
@@ -688,22 +733,13 @@
     $("#bookmarkCount").textContent = `${fmt(rows.length)}건 저장됨`;
   }
 
-  /* ── 기업 비교 레이더 (기업 인사이트 표와 동일한 가상 지표) ──
-     기업 인사이트 테이블 행을 클릭하면 그 기업이 A/B 슬롯에 들어가고,
-     두 기업은 각자 독립된 육각형 그래프로 나란히(양쪽) 표시된다 —
-     하나의 그래프에 겹쳐 그리지 않음. 표에 이미 있는 열(평균연봉·퇴사율·
-     입사율·인원·1인당 매출·진행중 공고)을 그대로 6개 축으로 쓴다.
-     실 API 인사이트(/v1/insight/company)는 401 권한 없음이라 가상 데이터 사용. */
-  const RADAR_AXES = [
-    { key: "average_salary", label: "평균연봉", unit: "만원" },
-    { key: "left_rate", label: "퇴사율", unit: "%" },
-    { key: "hire_rate", label: "입사율", unit: "%" },
-    { key: "employee_count", label: "인원", unit: "명" },
-    { key: "sales_per_person", label: "1인당 매출", unit: "백만원" },
-    { key: "active_jobs", label: "진행중 공고", unit: "건" },
-  ];
-  // 기업 인사이트 표에서 클릭한 company id — 처음부터 그래프가 보이도록 진행중 공고 상위 2곳을 기본 선택
-  const defaultRadarPair = [...D.companies].sort((a, b) => b.active_jobs - a.active_jobs).slice(0, 2);
+  /* ── 기업 비교 레이더 (실 API 데이터 — 공고 매력도 프로필과 동일한 축) ──
+     기업 인사이트 표 행을 클릭하면 그 기업이 A/B 슬롯에 들어가고, 두 기업은
+     각자 독립된 육각형 그래프로 나란히 표시된다. 축은 공고 상세 모달의
+     "공고 매력도"와 같은 6개(JOB_RADAR_AXES)를 기업 단위로 집계해서 쓴다 —
+     평균연봉·입사율·퇴사율·1인당매출·인원은 /v1/insight/company가 401이라 제외. */
+  // 처음부터 그래프가 보이도록 진행중 공고 상위 2곳을 기본 선택
+  const defaultRadarPair = companyAggregates().sort((a, b) => b.activeJobs - a.activeJobs).slice(0, 2);
   const radarSelection = { a: defaultRadarPair[0]?.id ?? null, b: defaultRadarPair[1]?.id ?? null };
 
   function selectRadarCompany(id) {
@@ -718,15 +754,18 @@
 
   function renderOneRadar(hostId, titleId, id, color) {
     const host = $(hostId), titleEl = $(titleId);
-    const company = id != null ? D.companies.find((c) => c.id === id) : null;
+    const companies = companyAggregates();
+    const company = id != null ? companies.find((c) => c.id === id) : null;
     if (!company) {
       titleEl.textContent = titleId === "#radarATitle" ? "기업 A" : "기업 B";
       host.replaceChildren(emptyNote("아래 표에서 기업을 클릭해 선택하세요."));
       return;
     }
     titleEl.textContent = company.name;
-    const maxOf = (key) => Math.max(1, ...D.companies.map((c) => c[key] || 0));
-    const axes = RADAR_AXES.map((ax) => ({ ...ax, max: maxOf(ax.key), value: company[ax.key] || 0 }));
+    const metricsPool = companies.map(companyRadarMetrics);
+    const maxOf = (key) => Math.max(1, ...metricsPool.map((m) => m[key] || 0));
+    const metrics = companyRadarMetrics(company);
+    const axes = JOB_RADAR_AXES.map((ax) => ({ ...ax, max: maxOf(ax.key), value: metrics[ax.key] || 0 }));
     const key = hostId.includes("radar-a") ? "radar-a" : "radar-b";
     chartTables[key] = Charts.radarChart(host, { axes, series: { name: company.name, color } });
     if (tableMode[key]) host.replaceChildren(chartTables[key]);
@@ -748,7 +787,10 @@
     JSON.parse(j.skill_titles || "[]").forEach((t) => LIVE_KEYWORDS.add(t));
     JSON.parse(j.attraction_titles || "[]").forEach((t) => LIVE_KEYWORDS.add(t));
   });
-  const ALL_KEYWORDS = [...new Set([...D.tags.map((t) => t.title), ...LIVE_KEYWORDS])];
+  // 가상 태그 카탈로그(D.tags)는 더 이상 섞지 않는다 — 직군 ID 517/507 라벨이 실
+  // 분류와 달라 실제로는 매칭되지 않는 잡음 키워드였다. 표본(LIVE)에 등장한 실
+  // 직군·스킬·복지 키워드만 쓴다 — 표본 밖 키워드는 못 잡지만 전부 실 데이터다.
+  const ALL_KEYWORDS = [...LIVE_KEYWORDS];
   const ASCII_TOKEN = /^[A-Za-z0-9.+#]+$/;
 
   function textHasKeyword(text, keyword) {
@@ -1137,7 +1179,7 @@
   const VIEW_META = {
     overview: ["시장 개요", `원티드 실시간 수집 데이터 · ${D.liveFetchedAt || "-"} 기준`],
     jobs: ["공고 탐색", "조건에 맞는 포지션을 찾아보세요"],
-    companies: ["기업 비교", "연봉·퇴사율·성장성으로 회사를 비교하세요"],
+    companies: ["기업 비교", "실 채용 데이터로 기업의 공고 매력도를 비교하세요"],
     bookmarks: ["북마크", "관심 공고 모아보기"],
     mypage: ["마이페이지", "자격증·수상·선호 직군·자소서·최근 방문 공고를 한곳에서 관리하세요"],
   };
