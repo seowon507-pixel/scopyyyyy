@@ -29,6 +29,16 @@
   --ramp-3: #2a78d6;
   --ramp-4: #1c5cab;
 
+  /* 막대그래프 카테고리 팔레트 — 고정 순서(CVD-safe), 절대 임의로 순환 배정하지 않음 */
+  --series-1: #2a78d6; /* blue */
+  --series-2: #1baf7a; /* aqua */
+  --series-3: #eda100; /* yellow */
+  --series-4: #008300; /* green */
+  --series-5: #4a3aa7; /* violet */
+  --series-6: #e34948; /* red */
+  --series-7: #e87ba4; /* magenta */
+  --series-8: #eb6834; /* orange */
+
   --shadow: 0 1px 2px rgba(11, 11, 11, 0.04), 0 8px 24px -12px rgba(11, 11, 11, 0.10);
   --radius: 16px;
 }
@@ -60,6 +70,16 @@
   --ramp-2: #3987e5;
   --ramp-3: #256abf;
   --ramp-4: #184f95;
+
+  /* 막대그래프 카테고리 팔레트 — 다크 서페이스용 스텝 (같은 8색, 순서 동일) */
+  --series-1: #3987e5;
+  --series-2: #199e70;
+  --series-3: #c98500;
+  --series-4: #008300;
+  --series-5: #9085e9;
+  --series-6: #e66767;
+  --series-7: #d55181;
+  --series-8: #d95926;
 
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
 }
@@ -331,18 +351,18 @@ body {
 
 /* ── 테이블 ────────────────────────────────── */
 .table-wrap { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
 th {
   text-align: left;
-  font-size: 11px; font-weight: 600;
+  font-size: 12px; font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.05em;
   color: var(--ink-3);
-  padding: 8px 12px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--grid);
   white-space: nowrap;
 }
 td {
-  padding: 11px 12px;
+  padding: 13px 14px;
   border-bottom: 1px solid var(--border-soft);
   vertical-align: middle;
   white-space: nowrap;
@@ -356,7 +376,17 @@ tbody tr.tr-radar-b td { background: var(--docpass-soft); }
 tbody tr.tr-radar-a td:first-child { border-left: 3px solid var(--accent); }
 tbody tr.tr-radar-b td:first-child { border-left: 3px solid var(--c-docpass); }
 .cell-main { font-weight: 600; display: flex; align-items: center; gap: 6px; }
-.cell-sub { font-size: 12px; color: var(--ink-3); }
+.cell-sub { font-size: 13px; color: var(--ink-3); }
+
+/* 표는 데스크톱에서만 키움 — 모바일은 기존 크기 유지 (이 규칙이 위 기본값보다 뒤에
+   와야 소스 순서상 이긴다 — 미디어쿼리는 셀렉터 우선순위를 올려주지 않는다) */
+@media (max-width: 980px) {
+  table { font-size: 13px; }
+  th { font-size: 11px; padding: 8px 12px; }
+  td { padding: 11px 12px; }
+  .cell-sub { font-size: 12px; }
+}
+
 .radar-badge {
   display: inline-flex; align-items: center; justify-content: center;
   width: 16px; height: 16px; border-radius: 5px;

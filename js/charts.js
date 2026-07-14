@@ -179,8 +179,16 @@ const Charts = (() => {
     return buildTable(["구간", `${seriesName} (건)`], labels.map((l, i) => [l, fmt(values[i])]));
   }
 
-  /* ── 수평 바 차트 (단일 색상 · 값은 바 끝에) ─────────────── */
-  function barChartH(container, { items, color = "var(--accent)", unit = "건", onClick }) {
+  /* ── 수평 바 차트 (막대별 카테고리 색상 · 값은 바 끝에) ───
+     막대마다 이미 좌측에 직접 라벨이 붙어 범례 없이도 식별되므로, 색은 8색 고정
+     순서 팔레트(--series-1..8)를 순서대로 배정한다 — 항목이 8개를 넘으면(예: 10개)
+     처음부터 다시 순환한다. `color`를 명시하면 그 값으로 전체 막대를 단일 색상 처리. */
+  const CATEGORICAL_PALETTE = [
+    "var(--series-1)", "var(--series-2)", "var(--series-3)", "var(--series-4)",
+    "var(--series-5)", "var(--series-6)", "var(--series-7)", "var(--series-8)",
+  ];
+
+  function barChartH(container, { items, color, unit = "건", onClick }) {
     container.replaceChildren();
     const rowH = 34, barH = 18, padL = 8, padR = 52, labelW = 150;
     const W = 560, H = items.length * rowH + 8;
@@ -189,17 +197,18 @@ const Charts = (() => {
     const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" });
 
     items.forEach((d, i) => {
+      const barColor = color || CATEGORICAL_PALETTE[i % CATEGORICAL_PALETTE.length];
       const y = 4 + i * rowH;
       const w = Math.max(2, (d.value / maxV) * plotW);
       const name = svgEl("text", { x: padL + labelW - 12, y: y + barH / 2 + 4, "text-anchor": "end", class: "mark-label" });
       name.textContent = d.label.length > 13 ? d.label.slice(0, 12) + "…" : d.label;
       svg.appendChild(name);
 
-      const bar = svgEl("path", { d: hBarPath(padL + labelW, y, w, barH), fill: color });
+      const bar = svgEl("path", { d: hBarPath(padL + labelW, y, w, barH), fill: barColor });
       bar.style.cursor = onClick ? "pointer" : "default";
       const onMove = (e) => {
         bar.setAttribute("opacity", "0.82");
-        showTooltip(e.clientX, e.clientY, d.label, [{ color, value: `${fmt(d.value)}${unit}`, name: d.sub || "" }]);
+        showTooltip(e.clientX, e.clientY, d.label, [{ color: barColor, value: `${fmt(d.value)}${unit}`, name: d.sub || "" }]);
       };
       bar.addEventListener("pointermove", onMove);
       bar.addEventListener("pointerleave", () => { bar.removeAttribute("opacity"); hideTooltip(); });
