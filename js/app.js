@@ -1455,9 +1455,16 @@
       const ownedCerts = benchmark.certs.filter(hasCertificate);
       const activityTypes = new Set(activities.map((activity) => activity.type));
       const ownedActivities = benchmark.activities.filter((type) => activityTypes.has(type));
-      const certScore = benchmark.certs.length ? ownedCerts.length / benchmark.certs.length * 65 : 0;
-      const activityScore = benchmark.activities.length ? ownedActivities.length / benchmark.activities.length * 35 : 0;
-      const score = Math.round(certScore + activityScore);
+      // 가중치: 체크리스트(자격증·외부활동)만으로는 실무 경력·프로젝트가 있는 지원자를
+      // 반영하지 못해 실제 준비도보다 낮게 나오는 문제가 있었다. 자격증·외부활동 비중을
+      // 줄이고 등록된 경력·프로젝트 건수(최대 2건 기준 만점)를 핵심 축으로 추가한다.
+      const careerCount = PROFILE_DETAILS.careers.length;
+      const projectCount = PROFILE_DETAILS.projects.length;
+      const certScore = benchmark.certs.length ? ownedCerts.length / benchmark.certs.length * 12 : 0;
+      const activityScore = benchmark.activities.length ? ownedActivities.length / benchmark.activities.length * 10 : 0;
+      const careerScore = Math.min(1, careerCount / 2) * 42;
+      const projectScore = Math.min(1, projectCount / 2) * 36;
+      const score = Math.round(certScore + activityScore + careerScore + projectScore);
 
       const card = document.createElement("article");
       card.className = "benchmark-card";
@@ -1503,6 +1510,23 @@
       });
       activityGroup.append(activityLabel, activityChips);
 
+      const experienceGroup = document.createElement("div");
+      experienceGroup.className = "benchmark-group";
+      const experienceLabel = document.createElement("span");
+      experienceLabel.textContent = "실무 경력·프로젝트";
+      const experienceChips = document.createElement("div");
+      experienceChips.className = "chip-row";
+      [
+        { label: "경력", count: careerCount },
+        { label: "프로젝트", count: projectCount },
+      ].forEach(({ label, count }) => {
+        const chip = document.createElement("span");
+        chip.className = `chip ${count > 0 ? "chip-benchmark-owned" : ""}`;
+        chip.textContent = `${count > 0 ? "✓ " : ""}${label} ${count}건`;
+        experienceChips.appendChild(chip);
+      });
+      experienceGroup.append(experienceLabel, experienceChips);
+
       const ideaGroup = document.createElement("div");
       ideaGroup.className = "benchmark-ideas";
       const ideaLabel = document.createElement("span");
@@ -1527,7 +1551,7 @@
         ideaList.appendChild(ideaCard);
       });
       ideaGroup.append(ideaLabel, ideaList);
-      card.append(head, track, certGroup, activityGroup, ideaGroup);
+      card.append(head, track, certGroup, activityGroup, experienceGroup, ideaGroup);
       return card;
     }));
   }
