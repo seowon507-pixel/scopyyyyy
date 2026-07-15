@@ -34,6 +34,10 @@
     return currentUser;
   }
 
+  function getClient() {
+    return sb;
+  }
+
   async function signUp(email, password) {
     const { data, error } = await sb.auth.signUp({
       email,
@@ -66,5 +70,5 @@
     });
   }
 
-  window.Auth = { init, onChange, getUser, signUp, signIn, signOut, resendVerification };
+  window.Auth = { init, onChange, getUser, getClient, signUp, signIn, signOut, resendVerification };
 })();

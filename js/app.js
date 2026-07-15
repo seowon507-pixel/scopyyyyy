@@ -13,7 +13,7 @@
   const EMPLOYMENT_LABEL = { regular: "정규직", contract: "계약직", intern: "인턴", freelancer: "프리랜서" };
   const NOW = new Date();
 
-  const state = { view: "overview", search: "", category: "", career: "", sort: "latest" };
+  const state = { view: "overview", search: "", category: "", career: "", sort: "latest", jobVisibleLimit: 60 };
   const tableMode = {};
   const chartTables = {};
 
@@ -30,7 +30,6 @@
   const coverLetters = JSON.parse(localStorage.getItem("scopy-coverletters") || "[]");
   const saveCoverLetters = () => localStorage.setItem("scopy-coverletters", JSON.stringify(coverLetters));
   state.clSelectedId = null;
-  state.clMode = "write"; // "write" | "file"
   const selectedCoverLetterText = () => {
     const selected = coverLetters.find((item) => item.id === state.clSelectedId);
     return selected?.content || selected?.fileName || "";
@@ -64,6 +63,7 @@
   const PREF_CATEGORIES_KEY = "scopy-preferred-categories";
 
   const careerLabel = (j) =>
+    !Number.isFinite(j.annual_from) || !Number.isFinite(j.annual_to) ? "경력 정보 확인" :
     j.annual_from === 0 && j.annual_to <= 1 ? "신입" :
     j.annual_from === 0 ? `신입–${j.annual_to}년` : `${j.annual_from}–${j.annual_to}년`;
 
@@ -112,9 +112,9 @@
 
     $("#kpiRow").replaceChildren(
       kpiTile({ label: "진행중 공고 (8개 직군 전수)", value: totalAll }),
-      kpiTile({ label: "채용 기업 (표본)", value: companies }),
-      kpiTile({ label: "평균 추천 보상금 (표본)", value: Math.round(avgReward), suffix: "만원" }),
-      kpiTile({ label: "신입 가능 공고 (표본)", value: entry }),
+      kpiTile({ label: "채용 기업", value: companies }),
+      kpiTile({ label: "평균 추천 보상금", value: Math.round(avgReward), suffix: "만원" }),
+      kpiTile({ label: "신입 가능 공고", value: entry }),
     );
   }
 
@@ -127,7 +127,7 @@
         .map((t) => ({ label: t.title, value: t.total })),
       onClick: (d) => openCompanySegmentModal(
         `${d.label} 직군 공고 기업`,
-        `수집 표본 기준 — 전수 집계(${fmt(d.value)}건)와는 다를 수 있습니다`,
+        `관련 채용공고 ${fmt(d.value)}건`,
         (j) => j.category_title === d.label,
       ),
     });
@@ -138,7 +138,7 @@
       items: Object.entries(bySkill).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([label, value]) => ({ label, value })),
       onClick: (d) => openCompanySegmentModal(
         `"${d.label}" 스킬을 요구하는 기업`,
-        `수집 표본 기준 · 공고 ${fmt(d.value)}건`,
+        `관련 채용공고 ${fmt(d.value)}건`,
         (j) => JSON.parse(j.skill_titles || "[]").includes(d.label),
       ),
     });
@@ -149,7 +149,7 @@
       items: bands.map(([label, test]) => ({ label, value: jobs.filter(test).length })),
       onClick: (d) => {
         const band = bands.find(([label]) => label === d.label);
-        if (band) openCompanySegmentModal(`${d.label} 공고 기업`, `수집 표본 기준 · 공고 ${fmt(d.value)}건`, band[1]);
+        if (band) openCompanySegmentModal(`${d.label} 공고 기업`, `관련 채용공고 ${fmt(d.value)}건`, band[1]);
       },
     });
 
@@ -159,7 +159,7 @@
       items: Object.entries(byLoc).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([label, value]) => ({ label, value })),
       onClick: (d) => openCompanySegmentModal(
         `${d.label} 근무지 공고 기업`,
-        `수집 표본 기준 · 공고 ${fmt(d.value)}건`,
+        `관련 채용공고 ${fmt(d.value)}건`,
         (j) => (j.location || "기타") === d.label,
       ),
     });
@@ -176,7 +176,7 @@
       unit: "개사",
       onClick: (d) => openCompanySegmentModal(
         `"${d.label}" 태그를 가진 기업`,
-        `수집 표본 기준 · ${fmt(d.value)}개사`,
+        `관련 기업 ${fmt(d.value)}개사`,
         (j) => JSON.parse(j.attraction_titles || "[]").includes(d.label),
       ),
     });
@@ -265,7 +265,7 @@
     const card = document.createElement("div");
     card.className = "job-card";
     card.addEventListener("click", (e) => {
-      if (e.target.closest(".bookmark-btn")) return;
+      if (e.target.closest(".bookmark-btn, .track-job-btn")) return;
       openJobModal(j);
     });
 
@@ -323,6 +323,21 @@
       chips.appendChild(chip);
     });
 
+    const track = document.createElement("button");
+    track.type = "button";
+    track.className = "track-job-btn";
+    track.textContent = window.ScopyApplications?.items.some((item) => String(item.jobId) === String(j.id))
+      ? "지원 관리 중"
+      : "지원 관리에 추가";
+    track.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      window.ScopyApplications?.add(j.id, "planned");
+      track.textContent = "지원 관리 중";
+      track.classList.add("is-added");
+    });
+    if (track.textContent === "지원 관리 중") track.classList.add("is-added");
+
     const foot = document.createElement("div");
     foot.className = "job-foot";
     const left = document.createElement("span");
@@ -334,7 +349,7 @@
     right.textContent = `${j.location} · ${dd.text}`;
     foot.append(left, right);
 
-    card.append(top, title, chips, foot);
+    card.append(top, title, chips, track, foot);
     return card;
   }
 
@@ -483,7 +498,7 @@
     radarSection.className = "job-modal-section";
     const rTitle = document.createElement("div");
     rTitle.className = "job-modal-section-title";
-    rTitle.textContent = "공고 매력도 (수집 표본 기준)";
+    rTitle.textContent = "공고 매력도";
     radarSection.appendChild(rTitle);
     const radarHost = document.createElement("div");
     radarHost.className = "chart-body";
@@ -492,14 +507,22 @@
 
     const applySection = document.createElement("div");
     applySection.className = "job-modal-section job-modal-apply";
+    const trackBtn = document.createElement("button");
+    trackBtn.className = "btn";
+    trackBtn.textContent = window.ScopyApplications?.items.some((item) => String(item.jobId) === String(j.id)) ? "지원 관리 중" : "지원 예정에 추가";
+    trackBtn.addEventListener("click", () => {
+      window.ScopyApplications?.add(j.id, "planned");
+      trackBtn.textContent = "지원 관리 중";
+      trackBtn.disabled = true;
+    });
     const applyBtn = document.createElement("button");
     applyBtn.className = "btn btn-primary";
-    applyBtn.textContent = "신청사이트";
+    applyBtn.textContent = "지원 사이트 열기";
     applyBtn.disabled = !j.url;
     applyBtn.addEventListener("click", () => {
       if (j.url) window.open(j.url, "_blank", "noopener,noreferrer");
     });
-    applySection.appendChild(applyBtn);
+    applySection.append(trackBtn, applyBtn);
     wrap.appendChild(applySection);
 
     return { wrap, radarHost };
@@ -555,7 +578,7 @@
     const rows = [...companies.values()].sort((a, b) => b.count - a.count);
 
     if (!rows.length) {
-      section.appendChild(emptyNote("수집 표본에서 일치하는 기업을 찾지 못했습니다."));
+      section.appendChild(emptyNote("해당 조건과 일치하는 기업을 찾지 못했습니다."));
     } else {
       const list = document.createElement("div");
       list.className = "reco-list";
@@ -591,8 +614,8 @@
     let rows = LIVE.filter((j) => j.status === "active");
     if (state.category) rows = rows.filter((j) => String(j.category_tag_id) === state.category);
     if (state.career === "new") rows = rows.filter((j) => j.annual_from === 0);
-    if (state.career === "junior") rows = rows.filter((j) => j.annual_from <= 3);
-    if (state.career === "senior") rows = rows.filter((j) => j.annual_from >= 5);
+    if (state.career === "junior") rows = rows.filter((j) => Number.isFinite(j.annual_from) && j.annual_from <= 3);
+    if (state.career === "senior") rows = rows.filter((j) => Number.isFinite(j.annual_from) && j.annual_from >= 5);
     if (state.search) {
       const q = state.search.toLowerCase();
       rows = rows.filter((j) =>
@@ -604,9 +627,11 @@
     if (state.sort === "reward") rows.sort((a, b) => b.reward_total - a.reward_total);
     if (state.sort === "due") rows.sort((a, b) => (a.due_time || "9999") .localeCompare(b.due_time || "9999"));
 
+    const visible = rows.slice(0, state.jobVisibleLimit);
     const grid = $("#jobGrid");
-    grid.replaceChildren(...rows.slice(0, 60).map(jobCard));
-    $("#jobCount").textContent = `원티드 실시간 데이터 · 진행 중 공고 ${fmt(rows.length)}건${rows.length > 60 ? " · 상위 60건 표시" : ""}`;
+    grid.replaceChildren(...visible.map(jobCard));
+    $("#jobLoadMoreWrap").hidden = visible.length >= rows.length;
+    $("#jobLoadMoreBtn").textContent = `공고 더 보기 (${fmt(rows.length - visible.length)}건 남음)`;
   }
 
   /* ── 기업 비교 (원티드 실 API 데이터) ─────────
@@ -632,7 +657,7 @@
       if (j.reward_total) { rec.rewardSum += j.reward_total; rec.rewardCount++; }
       JSON.parse(j.attraction_titles || "[]").forEach((t) => rec.welfareTags.add(t));
       JSON.parse(j.skill_titles || "[]").forEach((t) => rec.skillTags.add(t));
-      rec.minCareer = Math.min(rec.minCareer, j.annual_from ?? 0);
+      if (Number.isFinite(j.annual_from)) rec.minCareer = Math.min(rec.minCareer, j.annual_from);
       const daysLeft = j.due_time ? Math.max(0, Math.ceil((new Date(j.due_time) - NOW) / 86400e3)) : 60;
       rec.maxDaysLeft = Math.max(rec.maxDaysLeft, daysLeft);
     });
@@ -952,16 +977,6 @@
     container.replaceChildren(wrap);
   }
 
-  function setClMode(mode) {
-    state.clMode = mode;
-    const isWrite = mode === "write";
-    $("#clContent").hidden = !isWrite;
-    $("#clFileRow").hidden = isWrite;
-    $("#clModeWriteBtn").classList.toggle("is-active", isWrite);
-    $("#clModeFileBtn").classList.toggle("is-active", !isWrite);
-    $("#clSaveBtn").textContent = isWrite ? "저장" : "파일 등록";
-  }
-
   function deleteCoverLetter(id) {
     const idx = coverLetters.findIndex((c) => c.id === id);
     if (idx > -1) coverLetters.splice(idx, 1);
@@ -969,7 +984,6 @@
     if (state.clSelectedId === id) {
       state.clSelectedId = null;
       $("#clTitle").value = "";
-      $("#clContent").value = "";
       $("#clFile").value = "";
     }
     renderCoverLetters();
@@ -978,7 +992,7 @@
   function renderCoverLetters() {
     const listEl = $("#clList");
     if (!coverLetters.length) {
-      listEl.replaceChildren(emptyNote("저장한 자소서가 없습니다. 왼쪽에서 작성 후 저장하세요."));
+      listEl.replaceChildren(emptyNote("저장한 자소서가 없습니다. 왼쪽에서 TXT 파일을 등록하세요."));
     } else {
       const items = [...coverLetters].sort((a, b) => b.updatedAt - a.updatedAt).map((cl) => {
         const item = document.createElement("div");
@@ -1012,8 +1026,6 @@
         item.addEventListener("click", () => {
           state.clSelectedId = cl.id;
           $("#clTitle").value = cl.title;
-          $("#clContent").value = cl.content || "";
-          setClMode("write");
           renderCoverLetters();
         });
         item.append(main, del);
@@ -1584,7 +1596,7 @@
       card.insertBefore(reasons, card.lastElementChild);
       grid.appendChild(card);
     });
-    if (!recommendations.length) grid.appendChild(emptyNote("현재 수집된 공고 중 프로필과 일치하는 추천 결과가 없습니다."));
+    if (!recommendations.length) grid.appendChild(emptyNote("현재 채용공고 중 프로필과 일치하는 추천 결과가 없습니다."));
 
     const note = document.createElement("p");
     note.className = "job-ai-note";
@@ -1594,11 +1606,12 @@
   }
 
   /* ── 저장된 프로필로 자동 이력서 생성 ──────── */
+  const PROFILE_DETAILS = window.SCOPY_PROFILE_DETAILS || { careers: [], projects: [], skills: [], links: [] };
   const RESUME_TEMPLATES = [
-    { id: "developer", title: "개발", subtitle: "프로젝트와 기술 자격을 먼저 배치", activityHeading: "프로젝트·실무 경험", order: ["summary", "education", "certs", "activities", "coverLetter"] },
-    { id: "data", title: "데이터", subtitle: "분석 자격과 정량 경험을 먼저 배치", activityHeading: "분석·프로젝트 경험", order: ["summary", "education", "activities", "certs", "coverLetter"] },
-    { id: "business", title: "기획·비즈니스", subtitle: "문제 해결 활동과 자소서를 먼저 배치", activityHeading: "기획·대외활동 경험", order: ["summary", "education", "activities", "coverLetter", "certs"] },
-    { id: "marketing", title: "마케팅·광고", subtitle: "캠페인·공모전 경험을 먼저 배치", activityHeading: "캠페인·외부활동", order: ["summary", "education", "activities", "coverLetter", "certs"] },
+    { id: "ats", title: "기본·ATS형", subtitle: "채용 시스템이 읽기 쉬운 단정한 한 열 구성", style: "ats", documentLabel: "이력서", activityHeading: "경험·외부활동", order: ["summary", "skills", "career", "projects", "education", "certs", "activities", "links"] },
+    { id: "entry", title: "신입형", subtitle: "학력·프로젝트·교육과 성장 가능성을 먼저 배치", style: "entry", documentLabel: "신입 이력서", activityHeading: "교육·대외활동", order: ["summary", "education", "projects", "activities", "certs", "skills", "links"] },
+    { id: "career", title: "경력형", subtitle: "회사별 역할과 정량 성과를 중심으로 구성", style: "career", documentLabel: "경력 이력서", activityHeading: "기타 활동", order: ["summary", "career", "skills", "projects", "education", "certs", "links"] },
+    { id: "portfolio", title: "프로젝트·포트폴리오형", subtitle: "프로젝트 결과물과 기술·링크를 강조", style: "portfolio", documentLabel: "프로젝트 이력서", activityHeading: "관련 활동", order: ["summary", "projects", "skills", "career", "links", "activities", "education", "certs"] },
   ];
   const RESUME_PROFILE_KEY = "scopy-resume-profile";
 
@@ -1616,8 +1629,17 @@
     const selectedIds = (selector) => new Set([...document.querySelectorAll(`${selector} input:checked`)].map((input) => input.value));
     const certIds = selectedIds("#resumeCertChoices");
     const activityIds = selectedIds("#resumeActivityChoices");
+    const careerIds = selectedIds("#resumeCareerChoices");
+    const projectIds = selectedIds("#resumeProjectChoices");
     return {
       template, coverLetter,
+      includeCoverLetter: $("#resumeIncludeCover").checked,
+      targetRole: $("#resumeTargetRole").value.trim(),
+      summary: $("#resumeSummary").value.trim(),
+      careers: PROFILE_DETAILS.careers.filter((item) => careerIds.has(String(item.id))),
+      projects: PROFILE_DETAILS.projects.filter((item) => projectIds.has(String(item.id))),
+      skills: PROFILE_DETAILS.skills,
+      links: PROFILE_DETAILS.links,
       certifications: certifications.filter((item) => certIds.has(String(item.id))),
       activities: activities.filter((item) => activityIds.has(String(item.id))),
       education,
@@ -1635,8 +1657,23 @@
 
   function resumeSectionHtml(key, model) {
     if (key === "summary") {
-      const summary = coverLetterResumeText(model.coverLetter).split(/\n+/).filter(Boolean).slice(0, 2).join(" ");
-      return `<section><h2>프로필</h2><p>${paragraphHtml(summary)}</p></section>`;
+      return `<section><h2>프로필</h2><p>${paragraphHtml(model.summary || "핵심 역량과 대표 성과를 입력해주세요.")}</p></section>`;
+    }
+    if (key === "skills") {
+      const items = model.skills.length ? model.skills.map((skill) => `<li>${escapeDocText(skill)}</li>`).join("") : "<li>등록된 기술·업무 도구가 없습니다.</li>";
+      return `<section><h2>기술·업무 도구</h2><ul class="resume-skill-list">${items}</ul></section>`;
+    }
+    if (key === "career") {
+      const items = model.careers.length
+        ? model.careers.map((item) => `<li><strong>${escapeDocText([item.company, item.position].filter(Boolean).join(" · "))}</strong><span>${escapeDocText([item.start, item.end || "재직 중"].filter(Boolean).join(" – "))}</span>${item.summary ? `<p>${paragraphHtml(item.summary)}</p>` : ""}</li>`).join("")
+        : "<li>등록된 경력이 없습니다.</li>";
+      return `<section><h2>경력</h2><ul class="resume-detail-list">${items}</ul></section>`;
+    }
+    if (key === "projects") {
+      const items = model.projects.length
+        ? model.projects.map((item) => `<li><strong>${escapeDocText(item.title)}</strong><span>${escapeDocText([item.role, item.period].filter(Boolean).join(" · "))}</span>${item.result ? `<p>${paragraphHtml(item.result)}</p>` : ""}</li>`).join("")
+        : "<li>등록된 프로젝트가 없습니다.</li>";
+      return `<section><h2>프로젝트</h2><ul class="resume-detail-list">${items}</ul></section>`;
     }
     if (key === "education") {
       const items = model.education.length
@@ -1659,14 +1696,27 @@
     if (key === "coverLetter") {
       return `<section><h2>${escapeDocText(model.coverLetter?.title || "자기소개서")}</h2><p>${paragraphHtml(coverLetterResumeText(model.coverLetter))}</p></section>`;
     }
+    if (key === "links") {
+      const items = model.links.length
+        ? model.links.map((item) => `<li><strong>${escapeDocText(item.label)}</strong> · ${escapeDocText(item.url)}</li>`).join("")
+        : "<li>등록된 포트폴리오 링크가 없습니다.</li>";
+      return `<section><h2>포트폴리오·링크</h2><ul>${items}</ul></section>`;
+    }
     return "";
+  }
+
+  function resumeSectionOrder(model) {
+    return model.includeCoverLetter && model.coverLetter
+      ? [...model.template.order, "coverLetter"]
+      : model.template.order;
   }
 
   function resumeBodyHtml(model) {
     const contact = [model.email, model.phone].filter(Boolean).map(escapeDocText).join(" · ") || "연락처 미입력";
-    return `<article class="generated-resume">
-      <header><span>${escapeDocText(model.template.title)} 지원 이력서</span><h1>${escapeDocText(model.name)}</h1><p>${contact}</p></header>
-      ${model.template.order.map((key) => resumeSectionHtml(key, model)).join("")}
+    const label = model.targetRole ? `${model.targetRole} 지원용` : model.template.documentLabel;
+    return `<article class="generated-resume resume-style-${escapeDocText(model.template.style || "ats")}">
+      <header><span>${escapeDocText(label)}</span><h1>${escapeDocText(model.name)}</h1><p>${contact}</p></header>
+      ${resumeSectionOrder(model).map((key) => resumeSectionHtml(key, model)).join("")}
     </article>`;
   }
 
@@ -1675,20 +1725,21 @@
   }
 
   function defaultResumeTemplate() {
-    const first = preferredCategoryTitles()[0] || "";
-    if (/개발|엔지니어링/.test(first)) return "developer";
-    if (/마케팅|미디어/.test(first)) return "marketing";
-    if (/경영|영업|HR/.test(first)) return "business";
-    return "data";
+    if (PROFILE_DETAILS.careers.length) return "career";
+    if (PROFILE_DETAILS.projects.length) return "portfolio";
+    return "entry";
   }
 
   function renderResumeChoices(hostSelector, items, emptyText) {
     const host = $(hostSelector);
     const ready = host.dataset.ready === "true";
     const selected = new Set([...host.querySelectorAll("input:checked")].map((input) => input.value));
+    let previousIds = new Set();
+    try { previousIds = new Set(JSON.parse(host.dataset.itemIds || "[]")); } catch {}
     if (!items.length) {
       host.replaceChildren(emptyNote(emptyText));
       host.dataset.ready = "true";
+      host.dataset.itemIds = "[]";
       return;
     }
     const rows = items.map((item) => {
@@ -1697,15 +1748,16 @@
       const input = document.createElement("input");
       input.type = "checkbox";
       input.value = String(item.id);
-      input.checked = !ready || selected.has(input.value);
+      input.checked = !ready || selected.has(input.value) || !previousIds.has(input.value);
       input.addEventListener("change", renderResumePreview);
       const text = document.createElement("span");
-      text.textContent = item.name || item.title;
+      text.textContent = item.name || item.title || [item.company, item.position].filter(Boolean).join(" · ");
       label.append(input, text);
       return label;
     });
     host.replaceChildren(...rows);
     host.dataset.ready = "true";
+    host.dataset.itemIds = JSON.stringify(items.map((item) => String(item.id)));
   }
 
   function renderResumeBuilder() {
@@ -1725,6 +1777,8 @@
     coverSelect.replaceChildren(new Option("자소서 선택", ""), ...coverLetters.map((letter) => new Option(letter.title, String(letter.id))));
     coverSelect.value = coverLetters.some((letter) => String(letter.id) === previous) ? previous : String(coverLetters[0]?.id || "");
 
+    renderResumeChoices("#resumeCareerChoices", PROFILE_DETAILS.careers, "등록한 경력이 없습니다.");
+    renderResumeChoices("#resumeProjectChoices", PROFILE_DETAILS.projects, "등록한 프로젝트가 없습니다.");
     renderResumeChoices("#resumeCertChoices", certifications, "등록한 자격증이 없습니다.");
     renderResumeChoices("#resumeActivityChoices", activities, "등록한 대외활동이 없습니다.");
 
@@ -1734,21 +1788,27 @@
       $("#resumeName").value = profile.name || "";
       $("#resumeEmail").value = profile.email || "";
       $("#resumePhone").value = profile.phone || "";
+      $("#resumeTargetRole").value = profile.targetRole || preferredCategoryTitles()[0] || "";
+      $("#resumeSummary").value = profile.summary || "";
+      $("#resumeIncludeCover").checked = !!profile.includeCoverLetter;
       $("#resumeName").dataset.ready = "true";
     }
+    $("#resumeCoverLetterField").hidden = !$("#resumeIncludeCover").checked;
     renderResumePreview();
   }
 
   function saveResumeProfile() {
     localStorage.setItem(RESUME_PROFILE_KEY, JSON.stringify({
       name: $("#resumeName").value.trim(), email: $("#resumeEmail").value.trim(), phone: $("#resumePhone").value.trim(),
+      targetRole: $("#resumeTargetRole").value.trim(), summary: $("#resumeSummary").value.trim(),
+      includeCoverLetter: $("#resumeIncludeCover").checked,
     }));
     renderResumePreview();
   }
 
   async function downloadGeneratedResume() {
     const model = currentResumeModel();
-    if (!model.coverLetter) { alert("자동 이력서에 넣을 자소서를 먼저 선택해주세요."); return; }
+    if (model.includeCoverLetter && !model.coverLetter) { alert("이력서에 포함할 자소서를 선택해주세요."); return; }
     if (!window.docx) {
       alert("문서 생성 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 다시 시도해주세요.");
       return;
@@ -1760,19 +1820,47 @@
     btn.textContent = "생성 중…";
     try {
       const { Document, Paragraph, TextRun, HeadingLevel } = window.docx;
+      const documentLabel = model.targetRole ? `${model.targetRole} 지원용 이력서` : model.template.documentLabel;
       const paragraphs = [
-        new Paragraph({ text: `${model.template.title} 지원 이력서`, heading: HeadingLevel.SUBTITLE }),
+        new Paragraph({ text: documentLabel, heading: HeadingLevel.SUBTITLE }),
         new Paragraph({ text: model.name, heading: HeadingLevel.TITLE }),
         new Paragraph({ text: [model.email, model.phone].filter(Boolean).join(" · ") || "연락처 미입력" }),
       ];
       const addHeading = (text) => paragraphs.push(new Paragraph({ text, heading: HeadingLevel.HEADING_1 }));
       const addLines = (text) => String(text || "").split(/\n/).forEach((line) => paragraphs.push(new Paragraph({ text: line })));
 
-      model.template.order.forEach((section) => {
+      resumeSectionOrder(model).forEach((section) => {
         if (section === "summary") {
           addHeading("프로필");
-          const summary = coverLetterResumeText(model.coverLetter).split(/\n+/).filter(Boolean).slice(0, 2).join(" ");
-          addLines(summary);
+          addLines(model.summary || "핵심 역량과 대표 성과를 입력해주세요.");
+        } else if (section === "skills") {
+          addHeading("기술·업무 도구");
+          if (!model.skills.length) addLines("등록된 기술·업무 도구가 없습니다.");
+          model.skills.forEach((skill) => paragraphs.push(new Paragraph({ text: skill, bullet: { level: 0 } })));
+        } else if (section === "career") {
+          addHeading("경력");
+          if (!model.careers.length) addLines("등록된 경력이 없습니다.");
+          model.careers.forEach((item) => {
+            paragraphs.push(new Paragraph({
+              children: [
+                new TextRun({ text: [item.company, item.position].filter(Boolean).join(" · "), bold: true }),
+                new TextRun({ text: [item.start, item.end || "재직 중"].filter(Boolean).length ? ` · ${[item.start, item.end || "재직 중"].filter(Boolean).join(" – ")}` : "" }),
+              ],
+            }));
+            if (item.summary) addLines(item.summary);
+          });
+        } else if (section === "projects") {
+          addHeading("프로젝트");
+          if (!model.projects.length) addLines("등록된 프로젝트가 없습니다.");
+          model.projects.forEach((item) => {
+            paragraphs.push(new Paragraph({
+              children: [
+                new TextRun({ text: item.title, bold: true }),
+                new TextRun({ text: [item.role, item.period].filter(Boolean).length ? ` · ${[item.role, item.period].filter(Boolean).join(" · ")}` : "" }),
+              ],
+            }));
+            if (item.result) addLines(item.result);
+          });
         } else if (section === "education") {
           addHeading("학력");
           if (!model.education.length) addLines("등록된 학력이 없습니다.");
@@ -1806,6 +1894,10 @@
         } else if (section === "coverLetter") {
           addHeading(model.coverLetter.title || "자기소개서");
           addLines(coverLetterResumeText(model.coverLetter));
+        } else if (section === "links") {
+          addHeading("포트폴리오·링크");
+          if (!model.links.length) addLines("등록된 포트폴리오 링크가 없습니다.");
+          model.links.forEach((item) => paragraphs.push(new Paragraph({ text: `${item.label} · ${item.url}`, bullet: { level: 0 } })));
         }
       });
 
@@ -1814,7 +1906,7 @@
       const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = objectUrl;
-      link.download = `scopy_${model.template.title}_이력서_${model.name}.docx`.replace(/[\\/:*?"<>|]/g, "_");
+      link.download = `scopy_${model.template.title}_${model.name}.docx`.replace(/[\\/:*?"<>|]/g, "_");
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -1829,10 +1921,11 @@
 
   /* ── 오케스트레이션 ───────────────────────── */
   const VIEW_META = {
-    overview: ["시장 개요", `원티드 실시간 수집 데이터 · ${D.liveFetchedAt || "-"} 기준`],
+    overview: ["시장 개요", "채용 시장과 나의 지원 현황을 한눈에 확인하세요"],
     jobs: ["공고 탐색", "조건에 맞는 포지션을 찾아보세요"],
     companies: ["기업 비교", "실 채용 데이터로 기업의 공고 매력도를 비교하세요"],
     bookmarks: ["북마크", "관심 공고 모아보기"],
+    applications: ["지원 관리", "지원 예정부터 면접·최종 결과까지 나의 채용 과정을 관리하세요"],
     mypage: ["마이페이지", "자격증·외부활동·선호 직군·자소서와 자동 이력서를 한곳에서 관리하세요"],
   };
 
@@ -1895,22 +1988,17 @@
     });
   });
 
-  $("#jobSearch").addEventListener("input", (e) => { state.search = e.target.value; renderJobs(); });
-  $("#categoryFilter").addEventListener("change", (e) => { state.category = e.target.value; renderJobs(); });
-  $("#careerFilter").addEventListener("change", (e) => { state.career = e.target.value; renderJobs(); });
-  $("#sortOrder").addEventListener("change", (e) => { state.sort = e.target.value; renderJobs(); });
+  $("#jobSearch").addEventListener("input", (e) => { state.search = e.target.value; state.jobVisibleLimit = 60; renderJobs(); });
+  $("#categoryFilter").addEventListener("change", (e) => { state.category = e.target.value; state.jobVisibleLimit = 60; renderJobs(); });
+  $("#careerFilter").addEventListener("change", (e) => { state.career = e.target.value; state.jobVisibleLimit = 60; renderJobs(); });
+  $("#sortOrder").addEventListener("change", (e) => { state.sort = e.target.value; state.jobVisibleLimit = 60; renderJobs(); });
+  $("#jobLoadMoreBtn").addEventListener("click", () => { state.jobVisibleLimit += 60; renderJobs(); });
   $("#aiJobRecommendBtn").addEventListener("click", renderAiJobRecommendations);
-
-  $("#clModeWriteBtn").addEventListener("click", () => setClMode("write"));
-  $("#clModeFileBtn").addEventListener("click", () => setClMode("file"));
-  setClMode("write");
 
   $("#clNewBtn").addEventListener("click", () => {
     state.clSelectedId = null;
     $("#clTitle").value = "";
-    $("#clContent").value = "";
     $("#clFile").value = "";
-    setClMode("write");
     renderCoverLetters();
   });
   const CL_FILE_MAX_BYTES = 2 * 1024 * 1024;
@@ -1934,29 +2022,21 @@
 
   $("#clSaveBtn").addEventListener("click", async () => {
     const now = Date.now();
-    let next;
-    if (state.clMode === "write") {
-      const content = $("#clContent").value.trim();
-      if (!content) { alert("자소서 내용을 입력해주세요."); return; }
-      const title = $("#clTitle").value.trim() || "제목 없음";
-      next = { id: state.clSelectedId || now, title, content, updatedAt: now };
-    } else {
-      const fileInput = $("#clFile");
-      const file = fileInput.files[0];
-      if (!file) { alert("등록할 자소서 파일을 선택해주세요."); return; }
-      if (!file.name.toLowerCase().endsWith(".txt")) { alert("자소서는 TXT 파일만 등록할 수 있습니다."); return; }
-      if (file.size > CL_FILE_MAX_BYTES) { alert("자소서 파일은 2MB 이하만 저장할 수 있습니다."); return; }
-      const title = $("#clTitle").value.trim() || file.name.replace(/\.[^.]+$/, "");
-      next = {
-        id: state.clSelectedId || now,
-        title,
-        content: await readFileAsText(file),
-        fileName: file.name,
-        fileType: file.type || "application/octet-stream",
-        fileData: await readFileAsDataURL(file),
-        updatedAt: now,
-      };
-    }
+    const fileInput = $("#clFile");
+    const file = fileInput.files[0];
+    if (!file) { alert("등록할 자소서 TXT 파일을 선택해주세요."); return; }
+    if (!file.name.toLowerCase().endsWith(".txt")) { alert("자소서는 TXT 파일만 등록할 수 있습니다."); return; }
+    if (file.size > CL_FILE_MAX_BYTES) { alert("자소서 파일은 2MB 이하만 저장할 수 있습니다."); return; }
+    const title = $("#clTitle").value.trim() || file.name.replace(/\.[^.]+$/, "");
+    const next = {
+      id: state.clSelectedId || now,
+      title,
+      content: await readFileAsText(file),
+      fileName: file.name,
+      fileType: file.type || "text/plain",
+      fileData: await readFileAsDataURL(file),
+      updatedAt: now,
+    };
     const index = coverLetters.findIndex((item) => item.id === state.clSelectedId);
     const previous = index > -1 ? coverLetters[index] : null;
     if (index > -1) coverLetters[index] = next;
@@ -1971,7 +2051,7 @@
     }
     state.clSelectedId = next.id;
     $("#clTitle").value = next.title;
-    if (state.clMode === "file") $("#clFile").value = "";
+    $("#clFile").value = "";
     renderCoverLetters();
   });
 
@@ -2077,7 +2157,13 @@
   $("#resumeDownloadBtn").addEventListener("click", downloadGeneratedResume);
   $("#resumeTemplate").addEventListener("change", renderResumePreview);
   $("#resumeCoverLetter").addEventListener("change", renderResumePreview);
-  [$("#resumeName"), $("#resumeEmail"), $("#resumePhone")].forEach((input) => input.addEventListener("input", saveResumeProfile));
+  [$("#resumeName"), $("#resumeEmail"), $("#resumePhone"), $("#resumeTargetRole"), $("#resumeSummary")].forEach((input) => input.addEventListener("input", saveResumeProfile));
+  $("#resumeIncludeCover").addEventListener("change", () => {
+    $("#resumeCoverLetterField").hidden = !$("#resumeIncludeCover").checked;
+    saveResumeProfile();
+  });
+  document.addEventListener("scopy:profile-updated", renderResumeBuilder);
+  document.addEventListener("scopy:applications-updated", () => { renderJobs(); renderBookmarks(); });
   $("#certModalClose").addEventListener("click", closeCertificationModal);
   $("#certModalOverlay").addEventListener("click", (e) => {
     if (e.target.id === "certModalOverlay") closeCertificationModal();

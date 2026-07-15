@@ -42,6 +42,10 @@
         <svg viewBox="0 0 20 20"><path d="M5 3a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v15l-5-3.5L5 18z"/></svg>
         북마크
       </button>
+      <button class="nav-item" data-view="applications">
+        <svg viewBox="0 0 20 20"><path d="M4 3h12a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm2 3v2h8V6H6zm0 4v2h5v-2H6zm0 4v1h3v-1H6z"/></svg>
+        지원 관리
+      </button>
       <button class="nav-item" data-view="mypage">
         <svg viewBox="0 0 20 20"><path d="M10 10.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM3 18a7 7 0 0 1 14 0z"/></svg>
         마이페이지
@@ -88,13 +92,23 @@
 
     <!-- 시장 개요 -->
     <section class="view is-active" id="view-overview">
+      <div class="card personal-summary-card">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">나의 취업 현황</h2>
+            <p class="card-sub">지원 단계와 가까운 마감 일정을 한눈에 확인하세요.</p>
+          </div>
+          <button class="btn" id="openApplicationsBtn">지원 관리 열기</button>
+        </div>
+        <div id="applicationOverviewSummary"></div>
+      </div>
       <div class="kpi-row" id="kpiRow"></div>
       <div class="grid grid-2">
         <div class="card">
           <div class="card-head">
             <div>
               <h2 class="card-title">직군별 진행중 공고</h2>
-              <p class="card-sub">원티드 전수 집계 — 8개 직군 · 막대 클릭 시 기업 목록</p>
+              <p class="card-sub">8개 직군 비교 · 막대를 누르면 관련 기업을 볼 수 있습니다.</p>
             </div>
             <button class="table-toggle" data-target="category">표</button>
           </div>
@@ -104,7 +118,7 @@
           <div class="card-head">
             <div>
               <h2 class="card-title">스킬 수요 Top 10</h2>
-              <p class="card-sub">수집 표본 공고에 요구된 스킬 태그 빈도 · 막대 클릭 시 기업 목록</p>
+              <p class="card-sub">채용공고에서 자주 요구되는 기술 · 막대를 누르면 관련 기업을 볼 수 있습니다.</p>
             </div>
             <button class="table-toggle" data-target="skills">표</button>
           </div>
@@ -116,7 +130,7 @@
           <div class="card-head">
             <div>
               <h2 class="card-title">경력대별 공고</h2>
-              <p class="card-sub">최소 요구 경력 기준 (수집 표본) · 막대 클릭 시 기업 목록</p>
+              <p class="card-sub">최소 요구 경력 기준 · 막대를 누르면 관련 기업을 볼 수 있습니다.</p>
             </div>
             <button class="table-toggle" data-target="career">표</button>
           </div>
@@ -126,7 +140,7 @@
           <div class="card-head">
             <div>
               <h2 class="card-title">지역별 공고</h2>
-              <p class="card-sub">근무지 기준 (수집 표본) · 막대 클릭 시 기업 목록</p>
+              <p class="card-sub">근무지 기준 · 막대를 누르면 관련 기업을 볼 수 있습니다.</p>
             </div>
             <button class="table-toggle" data-target="location">표</button>
           </div>
@@ -162,7 +176,6 @@
         <div class="card-head card-head-stack">
           <div>
             <h2 class="card-title">공고 탐색</h2>
-            <p class="card-sub" id="jobCount"></p>
           </div>
           <div class="toolbar">
             <input type="search" id="jobSearch" class="search-input" placeholder="포지션·기업·스킬 검색">
@@ -189,6 +202,9 @@
         </div>
         <div class="job-ai-results" id="aiJobRecommendations" hidden></div>
         <div class="job-grid" id="jobGrid"></div>
+        <div class="job-load-more" id="jobLoadMoreWrap" hidden>
+          <button class="btn" id="jobLoadMoreBtn">공고 더 보기</button>
+        </div>
       </div>
     </section>
 
@@ -220,7 +236,7 @@
         <div class="card-head">
           <div>
             <h2 class="card-title">기업 인사이트</h2>
-            <p class="card-sub">원티드 실 API 기반 (수집 표본) — 진행 중 공고 수 순. 행을 클릭하면 위 레이더에서 비교할 기업으로 선택됩니다 (최대 2곳)</p>
+            <p class="card-sub">진행 중 공고 수 순 · 행을 누르면 위 그래프에서 비교할 기업으로 선택됩니다. (최대 2곳)</p>
           </div>
         </div>
         <div class="table-wrap" id="companiesTable"></div>
@@ -237,6 +253,24 @@
           </div>
         </div>
         <div class="job-grid" id="bookmarkGrid"></div>
+      </div>
+    </section>
+
+    <!-- 지원 관리 -->
+    <section class="view" id="view-applications">
+      <div class="kpi-row" id="applicationKpis"></div>
+      <div class="card">
+        <div class="card-head card-head-stack">
+          <div>
+            <h2 class="card-title">지원 현황 보드</h2>
+            <p class="card-sub">공고를 추가하고 지원 예정부터 최종 결과까지 단계를 관리하세요. 현재 브라우저에 저장됩니다.</p>
+          </div>
+          <div class="application-add-form">
+            <select id="applicationJobSelect" class="select"><option value="">공고 선택</option></select>
+            <button class="btn btn-primary" id="applicationAddBtn">지원 예정에 추가</button>
+          </div>
+        </div>
+        <div class="application-board" id="applicationBoard"></div>
       </div>
     </section>
 
@@ -310,27 +344,76 @@
         </div>
         <div class="cl-list" id="eduList"></div>
       </div>
+      <div class="grid grid-2 profile-detail-grid">
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">경력</h2>
+              <p class="card-sub">회사·직무·기간과 담당 업무 및 성과를 등록하세요.</p>
+            </div>
+          </div>
+          <div class="profile-detail-form career-detail-form">
+            <input type="text" id="careerCompany" class="search-input" placeholder="회사명">
+            <input type="text" id="careerPosition" class="search-input" placeholder="직무·직책">
+            <label class="form-date-field"><span>시작</span><input type="month" id="careerStart" class="search-input"></label>
+            <label class="form-date-field"><span>종료</span><input type="month" id="careerEnd" class="search-input"></label>
+            <textarea id="careerSummary" class="cl-textarea compact-textarea" placeholder="담당 업무와 정량 성과 (예: 전환율 18% 개선)"></textarea>
+            <button class="btn btn-primary" id="careerAddBtn">경력 추가</button>
+          </div>
+          <div class="cl-list" id="careerList"></div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">프로젝트</h2>
+              <p class="card-sub">지원 직무와 연결할 프로젝트의 역할과 결과물을 등록하세요.</p>
+            </div>
+          </div>
+          <div class="profile-detail-form project-detail-form">
+            <input type="text" id="projectTitle" class="search-input" placeholder="프로젝트명">
+            <input type="text" id="projectRole" class="search-input" placeholder="담당 역할">
+            <input type="text" id="projectPeriod" class="search-input" placeholder="기간 (예: 2026.01–2026.04)">
+            <textarea id="projectResult" class="cl-textarea compact-textarea" placeholder="문제·실행·성과 또는 포트폴리오 결과물"></textarea>
+            <button class="btn btn-primary" id="projectAddBtn">프로젝트 추가</button>
+          </div>
+          <div class="cl-list" id="projectList"></div>
+        </div>
+      </div>
+      <div class="grid grid-2 profile-detail-grid">
+        <div class="card">
+          <div class="card-head"><div><h2 class="card-title">기술·업무 도구</h2><p class="card-sub">쉼표로 구분해 여러 기술을 한 번에 추가할 수 있습니다.</p></div></div>
+          <div class="inline-profile-form">
+            <input type="text" id="skillInput" class="search-input" placeholder="예: Python, SQL, Figma">
+            <button class="btn btn-primary" id="skillAddBtn">추가</button>
+          </div>
+          <div class="profile-chip-list" id="skillList"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div><h2 class="card-title">포트폴리오·링크</h2><p class="card-sub">GitHub·노션·포트폴리오 등 공개 링크를 등록하세요.</p></div></div>
+          <div class="inline-profile-form link-profile-form">
+            <input type="text" id="linkLabel" class="search-input" placeholder="링크 이름">
+            <input type="url" id="linkUrl" class="search-input" placeholder="https://">
+            <button class="btn btn-primary" id="linkAddBtn">추가</button>
+          </div>
+          <div class="cl-list" id="linkList"></div>
+        </div>
+      </div>
       <div class="grid grid-2">
         <div class="card">
           <div class="card-head card-head-stack">
             <div>
-              <h2 class="card-title">자소서 등록</h2>
-              <p class="card-sub">직접 작성하거나 기존 자소서 파일을 올려 보관할 수 있습니다.</p>
+              <h2 class="card-title">자소서 파일 등록</h2>
+              <p class="card-sub">TXT 자소서만 올려 보관하며, 읽어온 본문은 맞춤 추천과 자동 이력서에 활용됩니다.</p>
             </div>
             <button class="btn" id="clNewBtn">새 자소서</button>
           </div>
-          <div class="cl-mode-toggle filter-row">
-            <button type="button" class="range-btn is-active" id="clModeWriteBtn" data-mode="write">직접 작성</button>
-            <button type="button" class="range-btn" id="clModeFileBtn" data-mode="file">파일 업로드</button>
-          </div>
           <div class="cl-editor">
             <input type="text" id="clTitle" class="search-input cl-title-input" placeholder="제목 (선택)">
-            <textarea id="clContent" class="cl-textarea" placeholder="자소서 내용을 입력하세요. 스킬·직무·희망 근무 방식을 구체적으로 쓰면 추천이 정확해집니다."></textarea>
-            <div class="cl-file-row" id="clFileRow" hidden>
+            <div class="cl-file-row" id="clFileRow">
               <input type="file" id="clFile" class="search-input cl-file-input" accept=".txt,text/plain">
               <p class="upload-help">TXT 파일만 등록할 수 있습니다. 최대 2MB · 본문은 회사·공고 추천과 자동 이력서에 반영됩니다.</p>
             </div>
-            <button class="btn btn-primary" id="clSaveBtn">저장</button>
+            <button class="btn btn-primary" id="clSaveBtn">TXT 파일 등록</button>
           </div>
         </div>
         <div class="card">
@@ -346,19 +429,14 @@
       <div class="card">
         <div class="card-head">
           <div>
-            <h2 class="card-title">직군별 준비도</h2>
+            <h2 class="card-title">맞춤 취업 분석</h2>
             <p class="card-sub">선호 직군별 대표 자격증과 구체적인 프로젝트·공모전·대외활동 예시를 확인하세요. 실제 합격자 개인정보나 합격 보장 지표는 아닙니다.</p>
           </div>
         </div>
+        <h3 class="analysis-section-title">직군별 준비도</h3>
         <div class="benchmark-grid" id="benchmarkResults"></div>
-      </div>
-      <div class="card">
-        <div class="card-head">
-          <div>
-            <h2 class="card-title">추천 기업</h2>
-            <p class="card-sub">자소서·자격증 키워드와 선호 직군을 종합해 채용 중인 기업과 매칭한 결과</p>
-          </div>
-        </div>
+        <h3 class="analysis-section-title analysis-section-title-spaced">추천 기업·공고</h3>
+        <p class="card-sub analysis-section-sub">자소서·자격증·외부활동과 선호 직군을 종합해 현재 채용공고와 매칭합니다.</p>
         <div id="clRecommend"></div>
       </div>
       <div class="card">
@@ -374,16 +452,21 @@
         <div class="card-head card-head-stack">
           <div>
             <h2 class="card-title">자동 이력서 만들기</h2>
-            <p class="card-sub">직무별 양식에 저장한 자소서·자격증·외부활동을 자동으로 넣고, 미리본 뒤 DOCX로 내려받습니다.</p>
+            <p class="card-sub">ATS·신입·경력·프로젝트형 양식에 저장한 경력과 역량을 조합하고, 미리본 뒤 DOCX로 내려받습니다.</p>
           </div>
           <button class="btn btn-primary" id="resumeDownloadBtn">현재 이력서 DOCX 다운로드</button>
         </div>
         <div class="resume-builder-layout">
           <div class="resume-builder-controls">
-            <label><span>이력서 양식 선택</span><select id="resumeTemplate" class="select"></select></label>
-            <label><span>사용할 자소서</span><select id="resumeCoverLetter" class="select"><option value="">자소서 선택</option></select></label>
+            <label><span>이력서 스타일</span><select id="resumeTemplate" class="select"></select></label>
+            <label><span>지원 직무</span><input type="text" id="resumeTargetRole" class="search-input" placeholder="예: 백엔드 개발자"></label>
+            <label><span>한 줄 소개·요약</span><textarea id="resumeSummary" class="cl-textarea resume-summary-input" placeholder="지원 직무와 연결되는 강점과 핵심 성과를 2~3줄로 적어주세요."></textarea></label>
+            <fieldset class="resume-choice-field"><legend>경력 선택</legend><div class="resume-choice-list" id="resumeCareerChoices"></div></fieldset>
+            <fieldset class="resume-choice-field"><legend>프로젝트 선택</legend><div class="resume-choice-list" id="resumeProjectChoices"></div></fieldset>
             <fieldset class="resume-choice-field"><legend>자격증·수상 선택</legend><div class="resume-choice-list" id="resumeCertChoices"></div></fieldset>
             <fieldset class="resume-choice-field"><legend>대외활동 선택</legend><div class="resume-choice-list" id="resumeActivityChoices"></div></fieldset>
+            <label class="resume-inline-check"><input type="checkbox" id="resumeIncludeCover"><span>자소서를 이력서 마지막에 포함</span></label>
+            <label id="resumeCoverLetterField" hidden><span>포함할 자소서</span><select id="resumeCoverLetter" class="select"><option value="">자소서 선택</option></select></label>
             <label><span>이름</span><input type="text" id="resumeName" class="search-input" placeholder="예: 홍길동"></label>
             <label><span>이메일</span><input type="email" id="resumeEmail" class="search-input" placeholder="예: name@example.com"></label>
             <label><span>연락처</span><input type="tel" id="resumePhone" class="search-input" placeholder="예: 010-0000-0000"></label>
@@ -391,6 +474,19 @@
           </div>
           <div class="resume-preview" id="resumePreview" aria-live="polite"></div>
         </div>
+      </div>
+      <div class="card data-backup-card">
+        <div class="card-head card-head-stack">
+          <div>
+            <h2 class="card-title">내 취업 데이터 백업</h2>
+            <p class="card-sub">현재 브라우저에 저장된 프로필·자소서·지원 현황을 파일로 보관하거나 다른 기기에서 복원하세요.</p>
+          </div>
+          <div class="data-backup-actions">
+            <button class="btn" id="exportWorkspaceBtn">백업 파일 다운로드</button>
+            <label class="btn backup-import-label">백업 파일 불러오기<input type="file" id="importWorkspaceFile" accept="application/json,.json" hidden></label>
+          </div>
+        </div>
+        <p class="data-backup-note">API 키와 로그인 비밀번호는 백업에 포함되지 않습니다. 첨부파일이 있으면 백업 파일 크기가 커질 수 있습니다.</p>
       </div>
     </section>
   </main>
@@ -452,6 +548,10 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/auth-ui.js"></script>
+<script src="js/cloud-sync.js"></script>
+<script src="js/profile.js"></script>
+<script src="js/applications.js"></script>
+<script src="js/backup.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

@@ -15,6 +15,7 @@
 
   let mode = 'signin';
   let lastEmail = '';
+  let authenticatedUser = null;
 
   function setMessage(text, isError) {
     if (!text) {
@@ -42,6 +43,25 @@
     document.body.classList.toggle('is-locked', locked);
     overlay.hidden = !locked;
     if (locked) setMode('signin');
+  }
+
+  function setSyncing() {
+    document.body.classList.add('is-locked');
+    overlay.hidden = false;
+    title.textContent = '내 데이터 불러오는 중…';
+    tabSignin.hidden = true;
+    tabSignup.hidden = true;
+    form.hidden = true;
+    resendBtn.hidden = true;
+    setMessage('잠시만 기다려주세요.');
+  }
+
+  function finishSyncing() {
+    tabSignin.hidden = false;
+    tabSignup.hidden = false;
+    form.hidden = false;
+    setMessage('');
+    setLocked(false);
   }
 
   tabSignin.addEventListener('click', () => setMode('signin'));
@@ -106,6 +126,10 @@
     const label = document.createElement('div');
     label.className = 'auth-chip-email';
     label.textContent = user.email;
+    const syncStatus = document.createElement('span');
+    syncStatus.className = 'cloud-sync-status';
+    syncStatus.id = 'cloudSyncStatus';
+    syncStatus.textContent = '저장 상태 확인 중…';
     const signOutBtn = document.createElement('button');
     signOutBtn.type = 'button';
     signOutBtn.className = 'btn auth-chip-action';
@@ -114,13 +138,23 @@
       signOutBtn.disabled = true;
       await window.Auth.signOut();
     });
-    info.append(label, signOutBtn);
+    info.append(label, syncStatus, signOutBtn);
     authChip.replaceChildren(info);
   }
 
   window.Auth.onChange((user) => {
-    setLocked(!user);
+    authenticatedUser = user;
     renderAuthChip(user);
+    if (user) setSyncing();
+    else {
+      tabSignin.hidden = false;
+      tabSignup.hidden = false;
+      form.hidden = false;
+      setLocked(true);
+    }
+  });
+  document.addEventListener('scopy:cloud-ready', () => {
+    if (authenticatedUser) finishSyncing();
   });
   window.Auth.init();
 })();
